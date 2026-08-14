@@ -742,6 +742,184 @@ class LearningApp {
     
     // Load Topic 0
     this.loadTopic(0);
+
+    // Start background live wallpaper
+    this.initBackgroundWallpaper();
+  }
+
+  initBackgroundWallpaper() {
+    const bgCanvas = document.getElementById("background-wallpaper");
+    if (!bgCanvas) return;
+    const bgCtx = bgCanvas.getContext("2d");
+    let t = 0;
+
+    // Generate starry cosmos data once
+    const stars = [];
+    for (let i = 0; i < 110; i++) {
+      stars.push({
+        x: Math.random(),
+        y: Math.random(),
+        size: 0.4 + Math.random() * 1.5,
+        twinkleSpeed: 0.005 + Math.random() * 0.012,
+        alpha: Math.random()
+      });
+    }
+
+    const resize = () => {
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", resize);
+    resize();
+
+    const draw = () => {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+      const w = bgCanvas.width;
+      const h = bgCanvas.height;
+
+      // 1. Deep Space Linear Gradient
+      const spaceGrad = bgCtx.createLinearGradient(0, 0, 0, h);
+      spaceGrad.addColorStop(0, "#040712");   // Absolute dark
+      spaceGrad.addColorStop(0.5, "#0b1122"); // Deep space navy
+      spaceGrad.addColorStop(1, "#170c2a");   // Soft cosmic violet
+      bgCtx.fillStyle = spaceGrad;
+      bgCtx.fillRect(0, 0, w, h);
+
+      // 2. Draw 2 Cosmic Nebula Clouds (Teal and Terracotta Dust)
+      const drawNebula = (cx, cy, r, color1, color2) => {
+        const grad = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, color1);
+        grad.addColorStop(1, color2);
+        bgCtx.fillStyle = grad;
+        bgCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+      };
+      
+      const nebRadius = Math.min(w, h) * 0.6;
+      drawNebula(w * 0.2, h * 0.4, nebRadius, "rgba(22, 60, 71, 0.18)", "rgba(22, 60, 71, 0)");
+      drawNebula(w * 0.8, h * 0.3, nebRadius * 0.8, "rgba(117, 72, 33, 0.12)", "rgba(117, 72, 33, 0)");
+
+      // 3. Twinkling Stars
+      stars.forEach(s => {
+        s.alpha += s.twinkleSpeed;
+        if (s.alpha > 1 || s.alpha < 0.1) {
+          s.twinkleSpeed = -s.twinkleSpeed;
+        }
+        const currentAlpha = Math.max(0.1, Math.min(1, s.alpha));
+        bgCtx.fillStyle = `rgba(255, 255, 255, ${currentAlpha})`;
+        bgCtx.beginPath();
+        bgCtx.arc(s.x * w, s.y * h, s.size, 0, 2 * Math.PI);
+        bgCtx.fill();
+      });
+
+      // 4. Rotating Planet Earth (Top-Right)
+      const ex = w - 160;
+      const ey = 220;
+      const er = 65;
+
+      if (w > 768) { // Only draw detailed Earth on desktop/tablet to avoid overlapping text
+        // Earth coordinate orbital ring
+        bgCtx.strokeStyle = "rgba(135, 206, 250, 0.08)";
+        bgCtx.lineWidth = 1;
+        bgCtx.beginPath();
+        bgCtx.arc(ex, ey, er * 1.35, 0, 2 * Math.PI);
+        bgCtx.stroke();
+        bgCtx.setLineDash([2, 6]);
+        bgCtx.beginPath();
+        bgCtx.ellipse(ex, ey, er * 1.7, er * 0.45, 0.25, 0, 2 * Math.PI);
+        bgCtx.stroke();
+        bgCtx.setLineDash([]);
+
+        // Earth ocean sphere base
+        const oceanGrad = bgCtx.createRadialGradient(ex - er * 0.3, ey - er * 0.3, 5, ex, ey, er);
+        oceanGrad.addColorStop(0, "#194373");
+        oceanGrad.addColorStop(1, "#0a1c33");
+        bgCtx.fillStyle = oceanGrad;
+        bgCtx.beginPath();
+        bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
+        bgCtx.fill();
+
+        // Draw spinning continents (clipped within sphere bounds)
+        bgCtx.save();
+        bgCtx.beginPath();
+        bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
+        bgCtx.clip();
+
+        // Continent blobs shifting right
+        const spinOffset = (t * 0.3) % (er * 4);
+        const continents = [
+          { cx: -er * 1.6, cy: -er * 0.1, r: er * 0.6 },
+          { cx: -er * 0.4, cy: er * 0.3, r: er * 0.5 },
+          { cx: er * 0.8, cy: -er * 0.4, r: er * 0.7 },
+          { cx: er * 1.8, cy: er * 0.1, r: er * 0.52 },
+          { cx: er * 2.8, cy: -er * 0.1, r: er * 0.6 } // wrap helper
+        ];
+
+        continents.forEach(c => {
+          let shiftedX = ex + c.cx + spinOffset;
+          if (shiftedX > ex + er * 2) shiftedX -= er * 4;
+
+          bgCtx.fillStyle = "#2d5e37"; // Land green
+          bgCtx.beginPath();
+          bgCtx.arc(shiftedX, ey + c.cy, c.r, 0, 2 * Math.PI);
+          bgCtx.fill();
+
+          bgCtx.fillStyle = "#7c683b"; // Land sand-desert brown details
+          bgCtx.beginPath();
+          bgCtx.arc(shiftedX - c.r * 0.2, ey + c.cy + c.r * 0.1, c.r * 0.5, 0, 2 * Math.PI);
+          bgCtx.fill();
+        });
+
+        // Night side shading linear gradient overlay
+        const shadowGrad = bgCtx.createLinearGradient(ex - er, ey, ex + er, ey);
+        shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
+        shadowGrad.addColorStop(0.3, "rgba(0, 0, 0, 0.1)");
+        shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0.85)");
+        bgCtx.fillStyle = shadowGrad;
+        bgCtx.beginPath();
+        bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
+        bgCtx.fill();
+
+        bgCtx.restore();
+
+        // Atmosphere glow
+        const atmGrad = bgCtx.createRadialGradient(ex, ey, er - 2, ex, ey, er * 1.25);
+        atmGrad.addColorStop(0, "rgba(100, 190, 255, 0.3)");
+        atmGrad.addColorStop(0.2, "rgba(100, 190, 255, 0.15)");
+        atmGrad.addColorStop(1, "rgba(100, 190, 255, 0)");
+        bgCtx.fillStyle = atmGrad;
+        bgCtx.beginPath();
+        bgCtx.arc(ex, ey, er * 1.25, 0, 2 * Math.PI);
+        bgCtx.fill();
+      }
+
+      // 5. Draw Small Orange Mars-Like Planet (Bottom-Left)
+      if (w > 992) {
+        const px = 140;
+        const py = h - 160;
+        const pr = 35;
+
+        const pGrad = bgCtx.createRadialGradient(px - pr * 0.2, py - pr * 0.2, 2, px, py, pr);
+        pGrad.addColorStop(0, "#be523c");
+        pGrad.addColorStop(1, "#49130d");
+        bgCtx.fillStyle = pGrad;
+        bgCtx.beginPath();
+        bgCtx.arc(px, py, pr, 0, 2 * Math.PI);
+        bgCtx.fill();
+
+        const pShadow = bgCtx.createLinearGradient(px - pr, py, px + pr, py);
+        pShadow.addColorStop(0, "rgba(0, 0, 0, 0)");
+        pShadow.addColorStop(1, "rgba(0, 0, 0, 0.72)");
+        bgCtx.fillStyle = pShadow;
+        bgCtx.beginPath();
+        bgCtx.arc(px, py, pr, 0, 2 * Math.PI);
+        bgCtx.fill();
+      }
+
+      t++;
+      requestAnimationFrame(draw);
+    };
+
+    draw();
   }
 
   renderSidebar() {
