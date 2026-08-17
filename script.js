@@ -1,692 +1,16 @@
-// script.js - Srivardhan Telangana SCERT Class 8 Chapter 1 Interactive Learning Engine
+// script.js - Srivardhan Telangana SCERT Class 8 Chapter 1-10 Interactive Learning Engine
 
-// --- TOPICS DATABASE & SYLLABUS CONTENT ---
-const topicsData = [
-  {
-    title: "Maps vs. Photographs",
-    subtitle: "Understanding Cartographic Representation",
-    readText: `
-      <p>A <span class="keyword" data-tooltip="A representation of a region showing physical, political, or thematic characteristics.">map</span> is a model of the Earth's surface or a part of it. It differs fundamentally from a <span class="keyword" data-tooltip="A realistic image captured by a camera that shows all visible light objects.">photograph</span>. A satellite photograph captures all visible physical details—houses, trees, roads, and clouds—exactly as they appear to a camera lens. However, a map is a selective, symbolic representation.</p>
-      <p>A <span class="keyword" data-tooltip="A person who studies and practices the science of map-making.">cartographer</span> (mapmaker) selects only specific details that are relevant to the map's theme, such as rainfall, soil type, or boundaries, and omits the rest. Maps use standard <span class="keyword" data-tooltip="Symbols, colors, and markers that represent objects on maps by mutual agreement.">symbols</span> and colors to represent these selected details. For example, a green patch represent a forest, whereas on a photograph it might just appear as dark green leaves.</p>
-      <p>Furthermore, because the Earth is a three-dimensional sphere, representing it on a flat sheet of paper introduces distortions in size, shape, or distance. Cartographers use a mathematical technique called <span class="keyword" data-tooltip="A method used to represent the curved 3D surface of the Earth on a flat 2D map.">projection</span> to translate the curved surface into a flat layout, sacrificing some aspects of accuracy to maintain others.</p>
-    `,
-    remember: "A photograph shows everything visible, but a map shows only selected features that are important for its specific purpose. Maps are tools of representation, not just images.",
-    funFact: "The earliest surviving map is the Babylonian Map of the World, carved on a clay tablet around 600 BC. It measures only about 12 cm tall and represents the world as a circular disk surrounded by water.",
-    realLife: "If you open Google Maps and switch to 'Satellite View', you see actual houses, cars, and trees (a photo). Switch to 'Map View', and the houses disappear, replaced by yellow roads, blue rivers, and colored polygons. This simplified view is much easier to navigate!",
-    vocab: [
-      { word: "Cartography", definition: "The science, art, and practice of making maps." },
-      { word: "Projection", definition: "A mathematical formula used to convert the Earth's spherical surface into a flat map." },
-      { word: "Thematic Map", definition: "A map designed to illustrate a particular theme or topic, such as rainfall or density." },
-      { word: "Symbolism", definition: "The use of simplified drawings, lines, or colors to represent real-life features." },
-      { word: "Scale", definition: "The ratio of a distance on the map to the corresponding distance on the ground." }
-    ],
-    summary: [
-      "A photograph shows all real-world details, while a map is highly selective.",
-      "Maps use symbols, colors, and keys to simplify complex geographic layouts.",
-      "A map focuses on a specific purpose or theme, making it a model rather than an image.",
-      "Representing the 3D spherical Earth on 2D flat paper always causes some distortion.",
-      "Cartographic projections are mathematical systems used to minimize these distortions."
-    ],
-    flashcards: [
-      { word: "Cartography", definition: "The science and art of drawing maps." },
-      { word: "Map", definition: "A selective, symbolic representation of a place on a flat surface." },
-      { word: "Photograph", definition: "A realistic image of a scene captured by a camera." },
-      { word: "Projection", definition: "The method of flattening a sphere into a map sheet." },
-      { word: "Thematic Focus", definition: "Selecting only one topic (like rainfall or crops) to show on a map." }
-    ],
-    quiz: [
-      {
-        question: "What is the primary difference between a map and a photograph?",
-        options: [
-          "A map is black and white, while a photograph is always colored.",
-          "A map shows only selected details for a theme, whereas a photograph captures all visible features.",
-          "A photograph is more accurate for measuring long-distance spherical coordinates.",
-          "Maps cannot represent roads or buildings, but photographs can."
-        ],
-        answerIndex: 1,
-        explanation: "A map is a selective model that shows specific thematic features using symbols, while a photograph captures all visible physical details."
-      },
-      {
-        question: "Who is a cartographer?",
-        options: [
-          "A scientist who studies rock formations.",
-          "A professional who takes aerial photographs from planes.",
-          "A person who designs and constructs maps.",
-          "A surveyor who measures mountain elevations."
-        ],
-        answerIndex: 2,
-        explanation: "Cartographer is the term for a mapmaker, derived from the French word 'carte' (map) and Greek 'graphia' (writing)."
-      },
-      {
-        question: "Why does converting a globe into a flat map introduce errors?",
-        options: [
-          "Because paper is not strong enough to hold geographical data.",
-          "Because you cannot represent a 3D sphere perfectly on a 2D flat surface without distortion.",
-          "Because the Earth is expanding, making maps outdated instantly.",
-          "Because different countries use different scales."
-        ],
-        answerIndex: 1,
-        explanation: "It is mathematically impossible to flatten a sphere (3D) onto a plane (2D) without stretching, tearing, or distorting shapes, sizes, or distances."
-      },
-      {
-        question: "Which of the following is NOT typically shown on a standard thematic road map?",
-        options: [
-          "Clouds and weather patterns at the moment of viewing",
-          "Major state highways",
-          "Interstate boundaries",
-          "Distances between towns"
-        ],
-        answerIndex: 0,
-        explanation: "Thematic road maps focus on static navigation routes. Dynamic elements like clouds are only captured by aerial photographs or weather maps."
-      },
-      {
-        question: "What is 'Map Projection'?",
-        options: [
-          "A slide presentation showing ancient historical maps.",
-          "A method of predicting future changes in country borders.",
-          "A mathematical technique to translate the curved Earth onto a flat map.",
-          "The shadow cast by a globe when light is shone through it."
-        ],
-        answerIndex: 2,
-        explanation: "Map projection is the systematic and mathematical drawing of the Earth's grid lines (meridians and parallels) onto a flat surface."
-      }
-    ]
-  },
-  {
-    title: "History of Map-Making",
-    subtitle: "From Clay Tablets to Mercator Grid",
-    readText: `
-      <p>Map-making has evolved over thousands of years. Around 4000 years ago, the <span class="keyword" data-tooltip="An ancient civilization in Mesopotamia (modern Iraq) known for early writing.">Sumerians</span> made maps on clay tablets to record land ownership for tax collections. Later, <span class="keyword" data-tooltip="An ancient empire centered in Mesopotamia; creators of the oldest surviving world map.">Babylonian</span> clay maps represented the world as a flat disk surrounded by a 'Bitter River' (ocean), with Babylon placed at the absolute center.</p>
-      <p>Ancient Greek geographers made map-making scientific. Geographers like <span class="keyword" data-tooltip="An ancient Greek philosopher credited with drawing the first map of the world.">Anaximander</span> and <span class="keyword" data-tooltip="An early Greek geographer who divided the world into Europe, Asia, and Libya.">Hecataeus</span> drew maps dividing the world into three continents: Europe, Asia, and Libya (Africa). <span class="keyword" data-tooltip="A Greek mathematician who laid the grid lines of latitude and longitude.">Ptolemy</span> revolutionized cartography by establishing the grid system of latitude and longitude, allowing specific coordinates to pin locations.</p>
-      <p>During the medieval era, cultural perspectives shaped mapping. The Arab geographer <span class="keyword" data-tooltip="A medieval Muslim cartographer who built a detailed world map in 1154 AD.">Al-Idrisi</span> drew a famous world map in 1154 AD for King Roger II of Sicily, putting **South at the top** of the map. In contrast, European maps of the same era (like Hereford Mappa Mundi) placed East at the top, centering Jerusalem. In 1569 AD, Dutch cartographer <span class="keyword" data-tooltip="A Flemish geographer who designed the navigation map projection still used today.">Gerardus Mercator</span> solved navigation problems by creating the Mercator Projection, showing lines of latitude and longitude crossing at 90-degree angles. This allowed sailors to steer ships in straight lines using constant compass directions.</p>
-    `,
-    remember: "Ancient maps were not drawn for accuracy, but reflected religious beliefs, political power, trade interests, or navigation needs of their creators.",
-    funFact: "In Al-Idrisi's map, South is placed at the top because Islamic scholars of Spain and North Africa at the time associated the South (the direction of Mecca for many of them) with the upper half of their horizons.",
-    realLife: "The maps you see in modern schools have North at the top. But this is just a cartographic convention! If you rotate a map upside-down, it is still 100% geographically correct. It just looks unusual because we are trained to expect North at the top.",
-    vocab: [
-      { word: "Cuneiform", definition: "The wedge-shaped writing system used by ancient Sumerians on clay tablets." },
-      { word: "Mappa Mundi", definition: "A medieval European map of the world, often containing religious illustrations." },
-      { word: "Latitude", definition: "Horizontal imaginary lines running parallel to the equator, measuring north-south position." },
-      { word: "Longitude", definition: "Vertical imaginary lines running from pole to pole, measuring east-west position." },
-      { word: "Rhumb Line", definition: "A line on a map that crosses all meridians at the same angle, showing constant compass direction." }
-    ],
-    summary: [
-      "Sumerians mapped boundaries on clay tablets to record land revenues for tax administration.",
-      "Babylonians represented the world as a disk bordered by a 'Bitter River'.",
-      "Greeks scientific geographers introduced latitude and longitude coordinate grids.",
-      "Al-Idrisi's medieval map placed South at the top, showing Islamic cultural influence.",
-      "Mercator's 1569 projection preserved angles, making it a critical tool for maritime navigators."
-    ],
-    flashcards: [
-      { word: "Sumerians", definition: "First to map boundaries on clay tablets for tax tracking." },
-      { word: "Al-Idrisi", definition: "Arab cartographer who placed South at the top of his 1154 AD map." },
-      { word: "Ptolemy", definition: "Greek scholar who created the coordinate system of latitude and longitude." },
-      { word: "Gerardus Mercator", definition: "Flemish cartographer who solved ship navigation grids in 1569." },
-      { word: "Bitter River", definition: "The outer ocean surrounding the world in Babylonian belief." }
-    ],
-    quiz: [
-      {
-        question: "Why did Sumerians draw early maps on clay tablets?",
-        options: [
-          "To predict volcanic eruptions.",
-          "To record land holdings for revenue and tax tracking.",
-          "To document star constellations for sailors.",
-          "To show routes for religious pilgrimages."
-        ],
-        answerIndex: 1,
-        explanation: "Sumerians (in Mesopotamia) created map records of agricultural plots to determine ownership boundaries and calculate taxes."
-      },
-      {
-        question: "In which medieval map was South placed at the top of the world?",
-        options: [
-          "The Hereford Mappa Mundi",
-          "Ptolemy's Greek World Map",
-          "Al-Idrisi's map drawn for King Roger II",
-          "Sumerian boundary stones"
-        ],
-        answerIndex: 2,
-        explanation: "Al-Idrisi's map of 1154 AD put South at the top, a common cartographic convention in medieval Islamic geography."
-      },
-      {
-        question: "What major cartographic contribution is Ptolemy known for?",
-        options: [
-          "Carving the first map on stone tablets.",
-          "Introducing latitude and longitude grid systems for precise coordinate mapping.",
-          "inventing the magnetic compass.",
-          "Creating the first physical relief maps using colors."
-        ],
-        answerIndex: 1,
-        explanation: "Ptolemy was a Greek mathematician/astronomer who calculated the positions of places on Earth using latitude and longitude lines."
-      },
-      {
-        question: "What is the primary benefit of the Mercator Projection (1569)?",
-        options: [
-          "It shows the correct size of polar regions like Greenland.",
-          "It enables ships to navigate along constant compass bearings (straight lines).",
-          "It represents the depth of the oceans using contour lines.",
-          "It displays the distribution of global population density."
-        ],
-        answerIndex: 1,
-        explanation: "Gerardus Mercator designed a cylinder-wrapped map projection where compass bearings remain straight lines, making ocean travel safe."
-      },
-      {
-        question: "How did the ancient Babylonian world map represent the shape of the world?",
-        options: [
-          "As an infinite flat square with four corner pillars.",
-          "As a round sphere floating in a solar system.",
-          "As a flat circular disk surrounded by a 'Bitter River'.",
-          "As a series of nested triangles."
-        ],
-        answerIndex: 2,
-        explanation: "The Babylonian world map depicts a circular plane surrounded by a ring of salt water (Bitter River), with Babylon in the center."
-      }
-    ]
-  },
-  {
-    title: "Maps in the Colonial Era",
-    subtitle: "Mapping for Exploration and Conquest",
-    readText: `
-      <p>During the 15th to 19th centuries, European powers colonized vast parts of the world. Detailed maps became strategic tools for military conquest, political administration, and resource extraction. Knowing where rivers flowed, where timber existed, and how local populations were laid out allowed colonizers to exploit territories more efficiently than using army weapons alone.</p>
-      <p>In India, the British East India Company established the <span class="keyword" data-tooltip="The oldest scientific department of the Government of India, tasked with surveying the land.">Survey of India</span>. In 1767, Robert Clive appointed <span class="keyword" data-tooltip="The first Surveyor General of India, who mapped Bengal and created early maps of Hindoostan.">James Rennell</span> as the first Surveyor General of India. Rennell spent years surveying routes and river systems to build the first comprehensive map of 'Hindoostan'.</p>
-      <p>In 1802, the British launched the historic <span class="keyword" data-tooltip="A scientific project to measure the length of India and determine the spherical shape of the Earth.">Great Trigonometrical Survey</span>. Initiated by <span class="keyword" data-tooltip="A British surveyor who began the Great Trigonometrical Survey of India.">William Lambton</span> from Madras, this project mapped the subcontinent using a process called **triangulation** (measuring angles using a transit <span class="keyword" data-tooltip="An angle-measuring instrument used in surveying to establish grids.">theodolite</span>). This survey was completed by <span class="keyword" data-tooltip="The Surveyor General who completed the mapping of the Himalayas and calculated the height of Mt. Everest.">George Everest</span>, mapping the tallest peak in the Himalayas, which was later named in his honor.</p>
-    `,
-    remember: "Colonial mapping was not just about science; it was an exercise in power. Detailed maps allowed foreign empires to claim ownership, build railroads, extract timber, and collect taxes systematically.",
-    funFact: "The Great Trigonometrical Survey of India took over 60 years to complete. The iron transit theodolite instrument used by Lambton weighed over 450 kilograms and had to be carried up hills by teams of 12 men!",
-    realLife: "Think of how modern businesses decide where to open a shop. They look at map data of traffic, income levels, and competitors. In the same way, the British used maps to spot where high-quality cotton or coal was located to build railway lines straight to those spots.",
-    vocab: [
-      { word: "Surveying", definition: "The measurement of dimensional relationships (distances, directions, elevations) on the Earth's surface." },
-      { word: "Triangulation", definition: "A surveying method that measures angles in a network of triangles to calculate precise locations." },
-      { word: "Theodolite", definition: "A precision optical instrument used to measure horizontal and vertical angles." },
-      { word: "Colonialism", definition: "The practice of acquiring political control over another country, occupying it, and exploiting it economically." },
-      { word: "Subcontinent", definition: "A large, distinguishable part of a continent, such as India." }
-    ],
-    summary: [
-      "European colonizers used maps as instruments of political control, navigation, and resource extraction.",
-      "James Rennell was appointed as India's first Surveyor General in 1767 to map Bengal and routes.",
-      "The Great Trigonometrical Survey (GTS) was started in 1802 to map India with mathematical rigor.",
-      "Surveyors used triangulation, measuring angles with heavy steel theodolites across base towers.",
-      "George Everest completed the survey, mapping the Himalayas and measuring Mount Everest."
-    ],
-    flashcards: [
-      { word: "James Rennell", definition: "Appointed as the first Surveyor General of India in 1767." },
-      { word: "William Lambton", definition: "Began the Great Trigonometrical Survey from Madras in 1802." },
-      { word: "George Everest", definition: "Completed the survey of India and measured the highest Himalayan peak." },
-      { word: "Triangulation", definition: "A geometric technique of measuring angles to calculate large distances." },
-      { word: "Theodolite", definition: "The heavy surveying instrument used to measure angles in the GTS." }
-    ],
-    quiz: [
-      {
-        question: "Why did European colonial powers value detailed maps so highly?",
-        options: [
-          "To print and sell them to tourists.",
-          "To locate minerals, timber, crops, and layout pathways for conquest and administration.",
-          "To trace the historical migrations of ancient kings.",
-          "To establish nature parks across their empires."
-        ],
-        answerIndex: 1,
-        explanation: "Maps gave colonizers vital spatial intelligence on resource locations (forests, mines) and trade routes, helping them control and exploit territories."
-      },
-      {
-        question: "Who was the first Surveyor General of India?",
-        options: [
-          "William Lambton",
-          "George Everest",
-          "James Rennell",
-          "Robert Clive"
-        ],
-        answerIndex: 2,
-        explanation: "James Rennell was appointed by Robert Clive in 1767 as the first Surveyor General of India to map Bengal and other parts."
-      },
-      {
-        question: "The Great Trigonometrical Survey of India began in 1802 from which location?",
-        options: [
-          "Calcutta (Kolkata)",
-          "Madras (Chennai)",
-          "Bombay (Mumbai)",
-          "Delhi"
-        ],
-        answerIndex: 1,
-        explanation: "William Lambton began the Great Trigonometrical Survey from Madras (specifically near St. Thomas Mount) in 1802."
-      },
-      {
-        question: "What is 'Triangulation' in surveying?",
-        options: [
-          "Dividing land into three parts for tax collection.",
-          "Using a three-legged compass to draw circular boundaries.",
-          "Measuring angles of triangles to calculate distances between coordinates.",
-          "A method of building triangular watchtowers."
-        ],
-        answerIndex: 2,
-        explanation: "Triangulation is a mathematical surveying method that calculates coordinates by measuring angles from known points in a grid of triangles."
-      },
-      {
-        question: "For what achievement is Sir George Everest famous?",
-        options: [
-          "He designed the first steam engine in India.",
-          "He completed the Great Trigonometrical Survey and measured the heights of the Himalayas.",
-          "He was the first British governor of Hyderabad.",
-          "He invented the Mercator map projection."
-        ],
-        answerIndex: 1,
-        explanation: "George Everest succeeded William Lambton as Superintendent of the GTS, mapping the northern ranges and measuring the tallest peaks."
-      }
-    ]
-  },
-  {
-    title: "Reading Thematic Maps",
-    subtitle: "Decoding Relief, Rainfall, and Population Grids",
-    readText: `
-      <p>Maps can be divided into general-purpose maps and **thematic maps**. General maps show basic features like roads, towns, and political boundaries. Thematic maps, on the other hand, focus on a single theme or topic, such as rainfall distribution, soil classifications, or mineral deposits.</p>
-      <p>A <span class="keyword" data-tooltip="A map representing the physical topography and heights of land features.">physical map</span> shows relief (land elevations and shapes) using color conventions. The standard system uses green for low plains (0 to 150 meters above sea level), yellow/orange for plateaus, and dark brown for high mountains. These colors show relief zones clearly.</p>
-      <p>Other thematic maps show density using shades of color. A **population density** map shows the concentration of people per square kilometer. Cartographers divide values into ranges and assign lighter shades for sparse areas and darker shades (like red or dark blue) for high density. This representation style is called a <span class="keyword" data-tooltip="A thematic map that uses colors or patterns to show values of a variable in geographical regions.">choropleth map</span>. To read these maps accurately, the reader must consult the map's **Legend** or Key, which defines what each color shade represents.</p>
-    `,
-    remember: "Color codes on physical maps represent altitude above sea level, not the color of the soil. Green indicates flat plains, even if the region is a desert!",
-    funFact: "Telangana is located on the Deccan Plateau. Therefore, physical relief maps represent most of Telangana using shades of yellow and light orange, showing its elevation range of 300 to 600 meters.",
-    realLife: "Look at a rainfall map of India. The Western Ghats and Northeast states are colored deep blue (high rainfall), while Rajasthan is colored pale yellow (low rainfall). This shows at a glance where agricultural crops like rice (needs lots of water) or millet (needs less water) can grow.",
-    vocab: [
-      { word: "Relief Map", definition: "A map showing physical landforms and variations in elevation above sea level." },
-      { word: "Choropleth", definition: "A mapping technique that colors geographic units based on a statistics range." },
-      { word: "Legend", definition: "The key on a map explaining the meanings of the symbols and colors used." },
-      { word: "Population Density", definition: "The measurement of population per unit area (typically people per square kilometer)." },
-      { word: "Conventions", definition: "Standard symbols or colors universally agreed upon by cartographers." }
-    ],
-    summary: [
-      "Thematic maps are designed to show a specific subject (such as temperature, vegetation, or crops).",
-      "Physical maps show land relief (plains, plateaus, mountains) using standard elevation colors.",
-      "Green represents low plains, yellow represents plateaus, and brown represents mountains.",
-      "Choropleth mapping uses progressive color shades to represent statistical ranges like population.",
-      "The map Legend is essential for translating color codes into actual numerical ranges."
-    ],
-    flashcards: [
-      { word: "Physical Map", definition: "Shows land relief, heights, and physical structures." },
-      { word: "Green color", definition: "Universal map convention for low elevation plains (0-150m)." },
-      { word: "Yellow color", definition: "Universal map convention for tablelands and plateaus (150-600m)." },
-      { word: "Choropleth", definition: "A map using lighter and darker shades to show statistics ranges." },
-      { word: "Legend / Key", definition: "The guidebook box explaining symbols and colors on a map." }
-    ],
-    quiz: [
-      {
-        question: "What is the main focus of a thematic map?",
-        options: [
-          "To show as many details as possible, including trees and buildings.",
-          "To illustrate a single, specific theme or aspect (like rainfall or soil type).",
-          "To map outer space and stars.",
-          "To show ship directions on oceans."
-        ],
-        answerIndex: 1,
-        explanation: "Thematic maps are specialized maps that show the distribution of a single topic or attribute in a region."
-      },
-      {
-        question: "On a standard physical relief map, what geographic feature is represented by the color Green?",
-        options: [
-          "Forests and dense vegetation",
-          "Lowland plains and river basins (low elevation)",
-          "Agricultural fields growing green crops",
-          "Wetlands and swamp regions"
-        ],
-        answerIndex: 1,
-        explanation: "By global convention, green represents low-lying flat plains (0 to 150m above sea level) on a physical relief map."
-      },
-      {
-        question: "What method does a 'Choropleth' map use to display statistical variations?",
-        options: [
-          "Drawing actual tiny figures of people on the map.",
-          "Using lighter and darker shades of a color to represent data ranges.",
-          "Connecting places of equal atmospheric pressure with lines.",
-          "Displaying 3D bars directly on the paper."
-        ],
-        answerIndex: 1,
-        explanation: "Choropleth maps use color shading gradients (darker representing higher values, lighter representing lower values) to display statistical data."
-      },
-      {
-        question: "Why does most of Telangana appear yellow-orange on a physical map of India?",
-        options: [
-          "Because it is covered by desert sands.",
-          "Because it has very low rainfall.",
-          "Because it sits on the Deccan Plateau, which has a moderate elevation (300m - 600m).",
-          "Because it has massive gold mines."
-        ],
-        answerIndex: 2,
-        explanation: "Telangana is situated on the Deccan Plateau. Yellow/light-orange is the cartographic standard for elevations between 150m and 600m."
-      },
-      {
-        question: "What is the purpose of a map's 'Legend'?",
-        options: [
-          "To tell historical myths about the region's origin.",
-          "To serve as a compass showing directions.",
-          "To explain the meanings of the symbols and colors used on the map.",
-          "To document the surveyor's name and date."
-        ],
-        answerIndex: 2,
-        explanation: "The Legend (or Key) is the map's dictionary, showing symbols, colors, and textures alongside their meaning."
-      }
-    ]
-  },
-  {
-    title: "Contour Lines and Relief",
-    subtitle: "Decoding Elevation and Slopes on 2D Paper",
-    readText: `
-      <p>Representing three-dimensional height (relief) on flat paper is a classic cartographic challenge. Cartographers solve this by using <span class="keyword" data-tooltip="An imaginary line on a map that joins points of equal elevation above sea level.">contour lines</span>. A contour line connects all places on the map that have the exact same height above sea level.</p>
-      <p>The layout and spacing of contour lines reveal the shape of the land:</p>
-      <ul>
-        <li>**Steep Slopes:** When contour lines are drawn **close to each other**, it indicates that the height changes rapidly over a short horizontal distance, showing a steep slope.</li>
-        <li>**Gentle Slopes:** When contour lines are **spaced far apart**, it shows that the height rises slowly over a large distance, representing a gentle slope.</li>
-      </ul>
-      <p>Contour lines possess unique mathematical traits. They never cross or intersect one another because a single physical spot cannot have two different heights. The height difference between two consecutive contour lines is constant and is known as the **contour interval** (e.g., 20 meters, 50 meters). These lines help plan roads, dams, and layouts without physically visiting the site.</p>
-    `,
-    remember: "Contour lines never intersect, loop into a single line, or branch. They must form closed loops, though the loop might extend beyond the margins of the map.",
-    funFact: "Civil engineers use contour maps to calculate how much soil needs to be dug up or filled when laying railway tracks or constructing dams. They can do these complex math formulas directly from the map office!",
-    realLife: "Imagine hiking up a hill. If you walk along a path that circles the hill at the exact same height without going up or down, you are walking along a real-life contour line. If you walk straight up to the peak, you are crossing contour lines at a 90-degree angle!",
-    vocab: [
-      { word: "Contour Line", definition: "A line on a map connecting points of equal height above sea level." },
-      { word: "Contour Interval", definition: "The constant difference in height between two adjacent contour lines." },
-      { word: "Steep Slope", definition: "An incline where elevation increases rapidly over a short distance." },
-      { word: "Gentle Slope", definition: "A mild incline where elevation increases slowly over a long distance." },
-      { word: "Cross-Section", definition: "A side-profile drawing showing the shape of a landform slice." }
-    ],
-    summary: [
-      "Contour lines represent three-dimensional land elevation on a flat two-dimensional map.",
-      "A contour line joins points that have the same height above sea level.",
-      "Closely spaced contour lines indicate steep slopes; widely spaced lines indicate gentle slopes.",
-      "Contour lines never cross or overlap because a single point has only one elevation value.",
-      "Contour intervals remain constant across a map, showing a fixed elevation step."
-    ],
-    flashcards: [
-      { word: "Contour Line", definition: "A line linking points of equal height above sea level." },
-      { word: "Steep Slope", definition: "Shown on a map by contour lines drawn very close together." },
-      { word: "Gentle Slope", definition: "Shown on a map by contour lines spaced far apart." },
-      { word: "Contour Interval", definition: "The constant vertical height difference between two adjacent contour lines." },
-      { word: "No Crossing", definition: "The rule that contour lines can never intersect because one spot cannot have two heights." }
-    ],
-    quiz: [
-      {
-        question: "What is a contour line?",
-        options: [
-          "A line showing state border divisions.",
-          "An imaginary line on a map joining points of equal height above sea level.",
-          "A line showing temperature zones.",
-          "The shortest path between two villages."
-        ],
-        answerIndex: 1,
-        explanation: "By definition, a contour line connects points of equal elevation above sea level."
-      },
-      {
-        question: "If contour lines are spaced very far apart on a map, what does it tell you?",
-        options: [
-          "The terrain is extremely steep.",
-          "The region has a flat or gentle slope.",
-          "There is a deep canyon or cliff.",
-          "The map is drawn to a very small scale."
-        ],
-        answerIndex: 1,
-        explanation: "Widely spaced contour lines mean the elevation changes slowly over a horizontal distance, which indicates flat land or a gentle slope."
-      },
-      {
-        question: "Why can contour lines never cross or intersect on a map?",
-        options: [
-          "Because it is bad cartographic luck.",
-          "Because a single physical coordinate cannot have two different heights.",
-          "Because lines would smudge during printing.",
-          "Because different countries measure heights differently."
-        ],
-        answerIndex: 1,
-        explanation: "Since a point on Earth can only have one elevation value, contour lines representing different heights cannot cross."
-      },
-      {
-        question: "What is the 'Contour Interval'?",
-        options: [
-          "The distance in kilometers between two contour paths.",
-          "The time taken by a surveyor to measure a hill.",
-          "The constant height difference between two consecutive contour lines.",
-          "The slope angle of a hill peak."
-        ],
-        answerIndex: 2,
-        explanation: "The contour interval is the fixed vertical distance (e.g. 50m, 100m) chosen between successive contour lines on a map."
-      },
-      {
-        question: "How would a vertical cliff be represented by contour lines?",
-        options: [
-          "The contour lines would run in perfectly straight parallel lines.",
-          "The contour lines would run together, merging or touching at the cliff edge.",
-          "No contour lines would be drawn in that region.",
-          "A single circle in the center of the cliff."
-        ],
-        answerIndex: 1,
-        explanation: "For a vertical cliff, the heights are vertically stacked, meaning the contour lines would touch or merge at that location on the map."
-      }
-    ]
-  }
-];
-
-// --- 20 UNIQUE FINAL TEST QUESTIONS ---
-const finalTestQuestions = [
-  {
-    question: "Which of the following is a primary characteristic of a map, as opposed to a photograph?",
-    options: [
-      "It captures weather clouds and moving vehicles.",
-      "It is a realistic image showing exact colors of trees.",
-      "It selectively represents features based on a specific theme using symbols.",
-      "It is captured by a camera lens in real-time."
-    ],
-    answerIndex: 2,
-    explanation: "Maps are models created for specific purposes, showing only selected features using symbols, while photographs capture all visible features."
-  },
-  {
-    question: "Why must cartographers use mathematical projections?",
-    options: [
-      "To calculate the total cost of printing maps.",
-      "To translate the 3D spherical Earth onto a flat 2D sheet of paper.",
-      "To measure the height of mountain peaks above sea level.",
-      "To determine historical boundaries of ancient empires."
-    ],
-    answerIndex: 1,
-    explanation: "A map projection is a mathematical method for transferring grid coordinates from a spherical surface (globe) to a flat sheet."
-  },
-  {
-    question: "Sumerians created early maps on clay tablets around 4000 years ago primarily to:",
-    options: [
-      "Plan long sea voyages to Greece.",
-      "Record agricultural boundaries and calculate land revenues for taxes.",
-      "Document constellations and star positions.",
-      "Draw political maps of the entire world."
-    ],
-    answerIndex: 1,
-    explanation: "Sumerians needed land ownership records to calculate land tax revenues from farming plots."
-  },
-  {
-    question: "In the ancient Babylonian World Map, what was represented as surrounding the circular land disk?",
-    options: [
-      "High mountain ranges",
-      "A Bitter River (Ocean)",
-      "Unexplored dark clouds",
-      "A wall of clay bricks"
-    ],
-    answerIndex: 1,
-    explanation: "The Babylonians believed the flat circular earth was surrounded by a ring of salt water called the 'Bitter River'."
-  },
-  {
-    question: "Which Greek cartographer first introduced coordinate grids of latitudes and longitudes to locate places?",
-    options: [
-      "Hecataeus",
-      "Anaximander",
-      "Ptolemy",
-      "Aristotle"
-    ],
-    answerIndex: 2,
-    explanation: "Ptolemy calculated coordinates for places worldwide using lines of latitude and longitude on his maps."
-  },
-  {
-    question: "In Al-Idrisi's map drawn for the King of Sicily in 1154 AD, what orientation was used?",
-    options: [
-      "North was at the top.",
-      "East was at the top.",
-      "South was at the top.",
-      "West was at the top."
-    ],
-    answerIndex: 2,
-    explanation: "Al-Idrisi oriented his map with South at the top, which was a standard convention in medieval Islamic cartography."
-  },
-  {
-    question: "Why did European colonial powers place such a high priority on creating detailed maps?",
-    options: [
-      "To showcase scientific advancements in school books.",
-      "To identify trade routes, paths, and exploit resources like timber and minerals.",
-      "To trace the genealogy of foreign royal families.",
-      "To build tourist resorts in tropical regions."
-    ],
-    answerIndex: 1,
-    explanation: "Colonizers needed spatial resource data to administer regions, establish trade lines, and extract wealth."
-  },
-  {
-    question: "Who was appointed by Robert Clive in 1767 as the first Surveyor General of India?",
-    options: [
-      "James Rennell",
-      "William Lambton",
-      "George Everest",
-      "Warren Hastings"
-    ],
-    answerIndex: 0,
-    explanation: "James Rennell was appointed as Surveyor General to map Bengal and build route maps for the East India Company."
-  },
-  {
-    question: "What was the primary goal of the Great Trigonometrical Survey of India started in 1802?",
-    options: [
-      "To discover oil and gold mines.",
-      "To mathematically map the subcontinent and measure the Earth's curvature.",
-      "To count the population of India.",
-      "To construct a railway line from Madras to Delhi."
-    ],
-    answerIndex: 1,
-    explanation: "The GTS aimed to scientifically map the entire subcontinent and measure the Earth's physical curvature using triangulation."
-  },
-  {
-    question: "Which surveying method was used by William Lambton and George Everest in the Great Survey?",
-    options: [
-      "Triangulation (measuring angles using a theodolite)",
-      "Satellite GPS surveying",
-      "Aerial photography",
-      "Tracing trade routes with measuring chains only"
-    ],
-    answerIndex: 0,
-    explanation: "Triangulation, measuring horizontal/vertical angles between towers using a heavy transit theodolite, was the main method of the GTS."
-  },
-  {
-    question: "Which geographic features are shown on a physical map?",
-    options: [
-      "Rainfall and weather lines",
-      "Land relief, elevation, plateaus, and plains",
-      "State electoral boundaries and districts",
-      "Language distributions and populations"
-    ],
-    answerIndex: 1,
-    explanation: "Physical maps depict natural features like mountains, plains, plateaus, and rivers, showing land relief."
-  },
-  {
-    question: "What is the standard map convention for representing lands between 150 and 600 meters (plateaus) on physical relief maps?",
-    options: [
-      "Green",
-      "Blue",
-      "Yellow/Orange",
-      "Dark Brown"
-    ],
-    answerIndex: 2,
-    explanation: "Plains (0-150m) are green, plateaus (150-600m) are yellow/orange, and high mountains are brown."
-  },
-  {
-    question: "What is a Choropleth map?",
-    options: [
-      "A map showing the shapes of stars.",
-      "A thematic map that uses colors or shading to represent statistical values in regions.",
-      "A map showing shipping trade lanes.",
-      "A map showing underwater cave systems."
-    ],
-    answerIndex: 1,
-    explanation: "Choropleth maps represent data ranges (e.g. population density) by coloring regions in light-to-dark shading gradients."
-  },
-  {
-    question: "If you want to know the population density of a region, what does that statistic measure?",
-    options: [
-      "The total height of the buildings in the cities.",
-      "The number of families living in the capital.",
-      "The average number of people living per square kilometer of land area.",
-      "The total population divided by the birth rate."
-    ],
-    answerIndex: 2,
-    explanation: "Population density represents the concentration of people, calculated as total population divided by land area in sq.km."
-  },
-  {
-    question: "What maps focus on a single specific theme, like crop distribution, rainfall, or minerals?",
-    options: [
-      "Political Maps",
-      "Thematic Maps",
-      "Physical Maps",
-      "Topographic Sheets"
-    ],
-    answerIndex: 1,
-    explanation: "Maps designed to illustrate a single subject or theme are called thematic maps."
-  },
-  {
-    question: "What is a contour line?",
-    options: [
-      "A line showing areas with the same annual rainfall.",
-      "An imaginary line on a map connecting points of equal height above sea level.",
-      "A line showing timezone splits.",
-      "A route used by ancient explorers."
-    ],
-    answerIndex: 1,
-    explanation: "Contour lines join places on the map that have the exact same elevation above sea level."
-  },
-  {
-    question: "When contour lines are spaced very close together on a map, it indicates:",
-    options: [
-      "The land is perfectly flat.",
-      "A very steep slope.",
-      "A low-lying river basin.",
-      "A boundary between two states."
-    ],
-    answerIndex: 1,
-    explanation: "Closely spaced lines mean height increases/decreases rapidly over a short horizontal distance, representing a steep slope."
-  },
-  {
-    question: "Why can contour lines never cross or overlap on a map?",
-    options: [
-      "Because they represent straight boundary fences.",
-      "Because a single geographic spot cannot have two different height values.",
-      "Because it would make the labels illegible.",
-      "Because lines are drawn with different colored pencils."
-    ],
-    answerIndex: 1,
-    explanation: "If contour lines crossed, it would imply that a single coordinate has two different heights simultaneously, which is impossible."
-  },
-  {
-    question: "What does a constant 'contour interval' mean?",
-    options: [
-      "The distance between grid lines of longitude.",
-      "The height difference between two consecutive contour lines remains the same throughout the map.",
-      "The time interval between two survey sweeps.",
-      "The slope angle remains exactly 45 degrees."
-    ],
-    answerIndex: 1,
-    explanation: "The contour interval is the uniform height step (e.g. 50 meters) separating successive contour lines."
-  },
-  {
-    question: "To steer ships across oceans in straight lines using constant compass directions, sailors relied on maps made with which projection?",
-    options: [
-      "Ptolemy Projection",
-      "Al-Idrisi South-up Projection",
-      "Mercator Projection",
-      "Babylonian Clay Projection"
-    ],
-    answerIndex: 2,
-    explanation: "Gerardus Mercator's 1569 projection preserves bearings/angles as straight lines, making it the ultimate tool for maritime navigation."
-  }
-];
+// --- DYNAMIC DATABASE MAPPING ---
+let topicsData = [];
+let finalTestQuestions = [];
 
 // --- APP STATE ENGINE ---
 class LearningApp {
   constructor() {
+    this.activeChapter = 0;
     this.activeTopic = 0;
     this.flowStep = "read";
+    this.theme = "light";
     
     // Animations & Canvas contexts
     this.watchCanvas = null;
@@ -727,6 +51,10 @@ class LearningApp {
       }
     }, 1000);
 
+    // Setup theme
+    this.theme = localStorage.getItem("theme") || "light";
+    this.applyTheme();
+
     // Setup DOM elements
     this.watchCanvas = document.getElementById("watch-canvas");
     if (this.watchCanvas) this.watchCtx = this.watchCanvas.getContext("2d");
@@ -737,14 +65,48 @@ class LearningApp {
       this.setupExploreListeners();
     }
 
-    // Build sidebar
-    this.renderSidebar();
-    
-    // Load Topic 0
-    this.loadTopic(0);
+    // Set default chapter (this triggers renderSidebar and loadTopic)
+    this.changeChapter(this.activeChapter);
 
     // Start background live wallpaper
     this.initBackgroundWallpaper();
+  }
+
+  changeChapter(chapterIndex) {
+    this.activeChapter = chapterIndex;
+    topicsData = syllabusData[chapterIndex].topics;
+    finalTestQuestions = syllabusData[chapterIndex].finalTest;
+
+    const totalTopicsEl = document.getElementById("total-topics-num");
+    if (totalTopicsEl) totalTopicsEl.innerText = topicsData.length;
+
+    const selector = document.getElementById("chapter-select");
+    if (selector) selector.value = chapterIndex;
+
+    this.renderSidebar();
+    this.loadTopic(0);
+  }
+
+  toggleTheme() {
+    this.theme = this.theme === "light" ? "dark" : "light";
+    localStorage.setItem("theme", this.theme);
+    this.applyTheme();
+  }
+
+  applyTheme() {
+    const htmlEl = document.documentElement;
+    const sunIcon = document.getElementById("theme-icon-sun");
+    const moonIcon = document.getElementById("theme-icon-moon");
+
+    if (this.theme === "dark") {
+      htmlEl.classList.add("dark-theme");
+      if (sunIcon) sunIcon.style.display = "block";
+      if (moonIcon) moonIcon.style.display = "none";
+    } else {
+      htmlEl.classList.remove("dark-theme");
+      if (sunIcon) sunIcon.style.display = "none";
+      if (moonIcon) moonIcon.style.display = "block";
+    }
   }
 
   initBackgroundWallpaper() {
@@ -753,7 +115,7 @@ class LearningApp {
     const bgCtx = bgCanvas.getContext("2d");
     let t = 0;
 
-    // Generate starry cosmos data once
+    // Generate starry cosmos/floating coordinate dots data once
     const stars = [];
     for (let i = 0; i < 110; i++) {
       stars.push({
@@ -777,15 +139,21 @@ class LearningApp {
       const w = bgCanvas.width;
       const h = bgCanvas.height;
 
-      // 1. Deep Space Linear Gradient
+      // 1. Theme-adapted Linear Gradient
       const spaceGrad = bgCtx.createLinearGradient(0, 0, 0, h);
-      spaceGrad.addColorStop(0, "#040712");   // Absolute dark
-      spaceGrad.addColorStop(0.5, "#0b1122"); // Deep space navy
-      spaceGrad.addColorStop(1, "#170c2a");   // Soft cosmic violet
+      if (this.theme === "dark") {
+        spaceGrad.addColorStop(0, "#040712");   // Absolute dark
+        spaceGrad.addColorStop(0.5, "#0b1122"); // Deep space navy
+        spaceGrad.addColorStop(1, "#170c2a");   // Soft cosmic violet
+      } else {
+        spaceGrad.addColorStop(0, "#faf8f4");   // Warm parchment light
+        spaceGrad.addColorStop(0.5, "#f6eedf"); // Deeper parchment
+        spaceGrad.addColorStop(1, "#ebdcb9");   // Celestial golden cream
+      }
       bgCtx.fillStyle = spaceGrad;
       bgCtx.fillRect(0, 0, w, h);
 
-      // 2. Draw 2 Cosmic Nebula Clouds (Teal and Terracotta Dust)
+      // 2. Cosmic Nebula Clouds (in dark) or Golden Coordinate Clouds (in light)
       const drawNebula = (cx, cy, r, color1, color2) => {
         const grad = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
         grad.addColorStop(0, color1);
@@ -795,17 +163,26 @@ class LearningApp {
       };
       
       const nebRadius = Math.min(w, h) * 0.6;
-      drawNebula(w * 0.2, h * 0.4, nebRadius, "rgba(22, 60, 71, 0.18)", "rgba(22, 60, 71, 0)");
-      drawNebula(w * 0.8, h * 0.3, nebRadius * 0.8, "rgba(117, 72, 33, 0.12)", "rgba(117, 72, 33, 0)");
+      if (this.theme === "dark") {
+        drawNebula(w * 0.2, h * 0.4, nebRadius, "rgba(22, 60, 71, 0.18)", "rgba(22, 60, 71, 0)");
+        drawNebula(w * 0.8, h * 0.3, nebRadius * 0.8, "rgba(117, 72, 33, 0.12)", "rgba(117, 72, 33, 0)");
+      } else {
+        drawNebula(w * 0.2, h * 0.4, nebRadius, "rgba(176, 129, 63, 0.05)", "rgba(176, 129, 63, 0)");
+        drawNebula(w * 0.8, h * 0.3, nebRadius * 0.8, "rgba(176, 129, 63, 0.03)", "rgba(176, 129, 63, 0)");
+      }
 
-      // 3. Twinkling Stars
+      // 3. Twinkling Stars (dark mode) or Floating coordinates dots (light mode)
       stars.forEach(s => {
         s.alpha += s.twinkleSpeed;
         if (s.alpha > 1 || s.alpha < 0.1) {
           s.twinkleSpeed = -s.twinkleSpeed;
         }
         const currentAlpha = Math.max(0.1, Math.min(1, s.alpha));
-        bgCtx.fillStyle = `rgba(255, 255, 255, ${currentAlpha})`;
+        if (this.theme === "dark") {
+          bgCtx.fillStyle = `rgba(255, 255, 255, ${currentAlpha * 0.8})`;
+        } else {
+          bgCtx.fillStyle = `rgba(176, 129, 63, ${currentAlpha * 0.25})`;
+        }
         bgCtx.beginPath();
         bgCtx.arc(s.x * w, s.y * h, s.size, 0, 2 * Math.PI);
         bgCtx.fill();
@@ -818,7 +195,7 @@ class LearningApp {
 
       if (w > 768) { // Only draw detailed Earth on desktop/tablet to avoid overlapping text
         // Earth coordinate orbital ring
-        bgCtx.strokeStyle = "rgba(135, 206, 250, 0.08)";
+        bgCtx.strokeStyle = this.theme === "dark" ? "rgba(135, 206, 250, 0.08)" : "rgba(176, 129, 63, 0.1)";
         bgCtx.lineWidth = 1;
         bgCtx.beginPath();
         bgCtx.arc(ex, ey, er * 1.35, 0, 2 * Math.PI);
@@ -830,9 +207,16 @@ class LearningApp {
         bgCtx.setLineDash([]);
 
         // Earth ocean sphere base
-        const oceanGrad = bgCtx.createRadialGradient(ex - er * 0.3, ey - er * 0.3, 5, ex, ey, er);
-        oceanGrad.addColorStop(0, "#194373");
-        oceanGrad.addColorStop(1, "#0a1c33");
+        const oceanGrad = bgCtx.createRadialGradient(ex - er * 0.4, ey - er * 0.4, er * 0.1, ex, ey, er);
+        if (this.theme === "dark") {
+          oceanGrad.addColorStop(0, "#2b6cb0");  // Sunlit ocean
+          oceanGrad.addColorStop(0.5, "#1a365d"); // Deep blue
+          oceanGrad.addColorStop(1, "#0a1122");   // Abyssal edge
+        } else {
+          oceanGrad.addColorStop(0, "#4299e1");
+          oceanGrad.addColorStop(0.6, "#2b6cb0");
+          oceanGrad.addColorStop(1, "#1a539b");
+        }
         bgCtx.fillStyle = oceanGrad;
         bgCtx.beginPath();
         bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
@@ -844,36 +228,145 @@ class LearningApp {
         bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
         bgCtx.clip();
 
-        // Continent blobs shifting right
-        const spinOffset = (t * 0.3) % (er * 4);
-        const continents = [
-          { cx: -er * 1.6, cy: -er * 0.1, r: er * 0.6 },
-          { cx: -er * 0.4, cy: er * 0.3, r: er * 0.5 },
-          { cx: er * 0.8, cy: -er * 0.4, r: er * 0.7 },
-          { cx: er * 1.8, cy: er * 0.1, r: er * 0.52 },
-          { cx: er * 2.8, cy: -er * 0.1, r: er * 0.6 } // wrap helper
-        ];
+        const mapWidth = er * 5.2; // total map width scroll cycle
+        const spinOffset = (t * 0.14) % mapWidth;
 
-        continents.forEach(c => {
-          let shiftedX = ex + c.cx + spinOffset;
-          if (shiftedX > ex + er * 2) shiftedX -= er * 4;
-
-          bgCtx.fillStyle = "#2d5e37"; // Land green
+        const drawLand = (offsetX) => {
+          // Antarctica
+          bgCtx.fillStyle = this.theme === "dark" ? "#64748b" : "#e2e8f0"; // icy glacier white
           bgCtx.beginPath();
-          bgCtx.arc(shiftedX, ey + c.cy, c.r, 0, 2 * Math.PI);
+          bgCtx.rect(offsetX - mapWidth, ey + er * 0.78, mapWidth * 2, er * 0.22);
           bgCtx.fill();
 
-          bgCtx.fillStyle = "#7c683b"; // Land sand-desert brown details
-          bgCtx.beginPath();
-          bgCtx.arc(shiftedX - c.r * 0.2, ey + c.cy + c.r * 0.1, c.r * 0.5, 0, 2 * Math.PI);
-          bgCtx.fill();
-        });
+          // Green vegetation base
+          bgCtx.fillStyle = this.theme === "dark" ? "#1e4d2b" : "#3b8e51";
 
-        // Night side shading linear gradient overlay
-        const shadowGrad = bgCtx.createLinearGradient(ex - er, ey, ex + er, ey);
+          // Americas
+          bgCtx.beginPath();
+          bgCtx.moveTo(offsetX + er * 0.1, ey - er * 0.7);
+          bgCtx.lineTo(offsetX + er * 0.4, ey - er * 0.7);
+          bgCtx.quadraticCurveTo(offsetX + er * 0.55, ey - er * 0.55, offsetX + er * 0.6, ey - er * 0.4);
+          bgCtx.lineTo(offsetX + er * 0.75, ey - er * 0.2);
+          bgCtx.lineTo(offsetX + er * 0.6, ey - er * 0.1);
+          bgCtx.lineTo(offsetX + er * 0.35, ey - er * 0.05);
+          bgCtx.lineTo(offsetX + er * 0.4, ey + er * 0.1);
+          bgCtx.lineTo(offsetX + er * 0.65, ey + er * 0.35);
+          bgCtx.lineTo(offsetX + er * 0.58, ey + er * 0.65);
+          bgCtx.lineTo(offsetX + er * 0.38, ey + er * 0.78);
+          bgCtx.lineTo(offsetX + er * 0.28, ey + er * 0.4);
+          bgCtx.lineTo(offsetX + er * 0.15, ey + er * 0.1);
+          bgCtx.closePath();
+          bgCtx.fill();
+
+          // Land details (desert/sand mountain details)
+          bgCtx.fillStyle = this.theme === "dark" ? "#5c4015" : "#c49a55";
+          bgCtx.beginPath();
+          bgCtx.moveTo(offsetX + er * 0.25, ey - er * 0.5);
+          bgCtx.lineTo(offsetX + er * 0.45, ey - er * 0.4);
+          bgCtx.lineTo(offsetX + er * 0.3, ey - er * 0.1);
+          bgCtx.closePath();
+          bgCtx.fill();
+
+          // Africa, Europe & Asia
+          bgCtx.fillStyle = this.theme === "dark" ? "#1b4425" : "#429f5b";
+          bgCtx.beginPath();
+          bgCtx.moveTo(offsetX + er * 1.8, ey - er * 0.78);
+          bgCtx.lineTo(offsetX + er * 3.7, ey - er * 0.78);
+          bgCtx.lineTo(offsetX + er * 3.85, ey - er * 0.5);
+          bgCtx.lineTo(offsetX + er * 3.55, ey - er * 0.15); // India
+          bgCtx.lineTo(offsetX + er * 3.2, ey - er * 0.1);
+          bgCtx.lineTo(offsetX + er * 2.8, ey - er * 0.3); // Arabia
+          bgCtx.lineTo(offsetX + er * 2.6, ey - er * 0.1);
+          bgCtx.lineTo(offsetX + er * 2.85, ey + er * 0.05); // Somalia
+          bgCtx.lineTo(offsetX + er * 2.75, ey + er * 0.4);
+          bgCtx.lineTo(offsetX + er * 2.45, ey + er * 0.75); // South Africa
+          bgCtx.lineTo(offsetX + er * 2.2, ey + er * 0.5);
+          bgCtx.lineTo(offsetX + er * 1.95, ey + er * 0.1); // West Africa
+          bgCtx.lineTo(offsetX + er * 1.9, ey - er * 0.35); // Spain/Med
+          bgCtx.closePath();
+          bgCtx.fill();
+
+          // Sahara/Gobi Desert details
+          bgCtx.fillStyle = this.theme === "dark" ? "#6b501f" : "#d8b26f";
+          bgCtx.beginPath();
+          bgCtx.moveTo(offsetX + er * 2.1, ey - er * 0.3);
+          bgCtx.lineTo(offsetX + er * 2.7, ey - er * 0.25);
+          bgCtx.lineTo(offsetX + er * 2.6, ey + er * 0.1);
+          bgCtx.lineTo(offsetX + er * 2.1, ey + er * 0.05);
+          bgCtx.closePath();
+          bgCtx.fill();
+
+          // Australia
+          bgCtx.fillStyle = this.theme === "dark" ? "#1e4d2b" : "#429f5b";
+          bgCtx.beginPath();
+          bgCtx.arc(offsetX + er * 4.15, ey + er * 0.38, er * 0.19, 0, 2 * Math.PI);
+          bgCtx.fill();
+
+          // Outback Desert detail
+          bgCtx.fillStyle = this.theme === "dark" ? "#6b501f" : "#d8b26f";
+          bgCtx.beginPath();
+          bgCtx.arc(offsetX + er * 4.15, ey + er * 0.38, er * 0.12, 0, 2 * Math.PI);
+          bgCtx.fill();
+        };
+
+        drawLand(ex - spinOffset);
+        drawLand(ex - spinOffset + mapWidth);
+        drawLand(ex - spinOffset - mapWidth);
+
+        // Draw 3D rotating clouds layer (parallax)
+        const cloudOffset = (t * 0.22) % mapWidth;
+        const drawClouds = (offsetX) => {
+          bgCtx.fillStyle = "rgba(255, 255, 255, 0.4)";
+          // Cloud system 1: Northern swirl
+          bgCtx.beginPath();
+          bgCtx.arc(offsetX + er * 0.8, ey - er * 0.4, er * 0.18, 0, 2 * Math.PI);
+          bgCtx.arc(offsetX + er * 1.0, ey - er * 0.45, er * 0.15, 0, 2 * Math.PI);
+          bgCtx.fill();
+
+          // Cloud system 2: Equatorial belt
+          bgCtx.beginPath();
+          bgCtx.rect(offsetX + er * 1.5, ey - er * 0.08, er * 0.8, er * 0.16);
+          bgCtx.rect(offsetX + er * 3.6, ey + er * 0.05, er * 0.7, er * 0.14);
+          bgCtx.fill();
+
+          // Cloud system 3: Southern swirl
+          bgCtx.beginPath();
+          bgCtx.arc(offsetX + er * 0.4, ey + er * 0.4, er * 0.18, 0, 2 * Math.PI);
+          bgCtx.arc(offsetX + er * 2.8, ey + er * 0.45, er * 0.15, 0, 2 * Math.PI);
+          bgCtx.fill();
+        };
+        drawClouds(ex - cloudOffset);
+        drawClouds(ex - cloudOffset + mapWidth);
+        drawClouds(ex - cloudOffset - mapWidth);
+
+        // Draw 3D rotating latitude/longitude grid lines overlay (subtle)
+        bgCtx.strokeStyle = this.theme === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.07)";
+        bgCtx.lineWidth = 0.8;
+        
+        // Latitudes
+        for (let lat = -60; lat <= 60; lat += 30) {
+          const latY = ey + Math.sin(lat * Math.PI / 180) * er;
+          const latW = Math.cos(lat * Math.PI / 180) * er;
+          bgCtx.beginPath();
+          bgCtx.moveTo(ex - latW, latY);
+          bgCtx.lineTo(ex + latW, latY);
+          bgCtx.stroke();
+        }
+
+        // Longitudes
+        for (let lon = 0; lon < 180; lon += 45) {
+          const angle = ((lon + t * 0.25) % 180) * Math.PI / 180;
+          const latW = Math.sin(angle) * er;
+          bgCtx.beginPath();
+          bgCtx.ellipse(ex, ey, Math.abs(latW), er, 0, 0, 2 * Math.PI);
+          bgCtx.stroke();
+        }
+
+        // 3D Spherical Shadow overlay (creates high quality realistic 3D orb depth)
+        const shadowGrad = bgCtx.createRadialGradient(ex - er * 0.4, ey - er * 0.4, er * 0.2, ex, ey, er);
         shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
-        shadowGrad.addColorStop(0.3, "rgba(0, 0, 0, 0.1)");
-        shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0.85)");
+        shadowGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.35)");
+        shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0.88)");
         bgCtx.fillStyle = shadowGrad;
         bgCtx.beginPath();
         bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
@@ -881,11 +374,17 @@ class LearningApp {
 
         bgCtx.restore();
 
-        // Atmosphere glow
+        // Atmosphere outer limb glow
         const atmGrad = bgCtx.createRadialGradient(ex, ey, er - 2, ex, ey, er * 1.25);
-        atmGrad.addColorStop(0, "rgba(100, 190, 255, 0.3)");
-        atmGrad.addColorStop(0.2, "rgba(100, 190, 255, 0.15)");
-        atmGrad.addColorStop(1, "rgba(100, 190, 255, 0)");
+        if (this.theme === "dark") {
+          atmGrad.addColorStop(0, "rgba(100, 190, 255, 0.35)");
+          atmGrad.addColorStop(0.2, "rgba(100, 190, 255, 0.15)");
+          atmGrad.addColorStop(1, "rgba(100, 190, 255, 0)");
+        } else {
+          atmGrad.addColorStop(0, "rgba(74, 144, 226, 0.25)");
+          atmGrad.addColorStop(0.3, "rgba(74, 144, 226, 0.15)");
+          atmGrad.addColorStop(1, "rgba(74, 144, 226, 0)");
+        }
         bgCtx.fillStyle = atmGrad;
         bgCtx.beginPath();
         bgCtx.arc(ex, ey, er * 1.25, 0, 2 * Math.PI);
@@ -899,8 +398,13 @@ class LearningApp {
         const pr = 35;
 
         const pGrad = bgCtx.createRadialGradient(px - pr * 0.2, py - pr * 0.2, 2, px, py, pr);
-        pGrad.addColorStop(0, "#be523c");
-        pGrad.addColorStop(1, "#49130d");
+        if (this.theme === "dark") {
+          pGrad.addColorStop(0, "#be523c");
+          pGrad.addColorStop(1, "#49130d");
+        } else {
+          pGrad.addColorStop(0, "#df7c67");
+          pGrad.addColorStop(1, "#8e3523");
+        }
         bgCtx.fillStyle = pGrad;
         bgCtx.beginPath();
         bgCtx.arc(px, py, pr, 0, 2 * Math.PI);
@@ -908,7 +412,7 @@ class LearningApp {
 
         const pShadow = bgCtx.createLinearGradient(px - pr, py, px + pr, py);
         pShadow.addColorStop(0, "rgba(0, 0, 0, 0)");
-        pShadow.addColorStop(1, "rgba(0, 0, 0, 0.72)");
+        pShadow.addColorStop(1, this.theme === "dark" ? "rgba(0, 0, 0, 0.72)" : "rgba(0, 0, 0, 0.28)");
         bgCtx.fillStyle = pShadow;
         bgCtx.beginPath();
         bgCtx.arc(px, py, pr, 0, 2 * Math.PI);
@@ -962,7 +466,7 @@ class LearningApp {
     document.getElementById("sidebar-final-test-btn").classList.remove("active");
 
     // Populate metadata
-    document.getElementById("topic-meta-display").innerText = `Topic ${index + 1} of 5`;
+    document.getElementById("topic-meta-display").innerText = `Topic ${index + 1} of ${topicsData.length}`;
     document.getElementById("topic-title-display").innerText = topicsData[index].title;
     document.getElementById("current-active-topic-num").innerText = index + 1;
 
@@ -1020,7 +524,7 @@ class LearningApp {
       ctaTitle.innerText = "Proceed to Topic Revision";
       ctaBtn.innerText = "Next: Revise";
     } else if (step === "revise") {
-      if (this.activeTopic < 4) {
+      if (this.activeTopic < topicsData.length - 1) {
         ctaTitle.innerText = "Proceed to Next Topic Lesson";
         ctaBtn.innerText = "Next Lesson";
       } else {
@@ -1036,7 +540,7 @@ class LearningApp {
     else if (this.flowStep === "explore") this.setFlowStep("practice");
     else if (this.flowStep === "practice") this.setFlowStep("revise");
     else if (this.flowStep === "revise") {
-      if (this.activeTopic < 4) {
+      if (this.activeTopic < topicsData.length - 1) {
         this.loadTopic(this.activeTopic + 1);
       } else {
         this.showFinalTestIntro();
@@ -1106,14 +610,14 @@ class LearningApp {
     const h = this.watchCanvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // Deep background space/chalkboard style
-    ctx.fillStyle = "#0c121e";
+    // Theme-adapted background
+    ctx.fillStyle = this.theme === "dark" ? "#0c121e" : "#fbf9f4";
     ctx.fillRect(0, 0, w, h);
 
     ctx.save();
     
     // Grid overlay background
-    ctx.strokeStyle = "rgba(176, 129, 63, 0.05)";
+    ctx.strokeStyle = this.theme === "dark" ? "rgba(176, 129, 63, 0.05)" : "rgba(176, 129, 63, 0.12)";
     ctx.lineWidth = 1;
     for (let x = 0; x < w; x += 30) {
       ctx.beginPath();
@@ -1129,29 +633,13 @@ class LearningApp {
     }
 
     // Add Srivardhan branding text in canvas background
-    ctx.fillStyle = "rgba(176, 129, 63, 0.04)";
+    ctx.fillStyle = this.theme === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(176, 129, 63, 0.06)";
     ctx.font = "italic 700 36px 'Cormorant Garamond'";
     ctx.textAlign = "center";
     ctx.fillText("SRIVARDHAN", w / 2, h - 30);
 
-    // Render topic-specific watch animations
-    switch (this.activeTopic) {
-      case 0:
-        this.drawTopic1Watch(ctx, w, h);
-        break;
-      case 1:
-        this.drawTopic2Watch(ctx, w, h);
-        break;
-      case 2:
-        this.drawTopic3Watch(ctx, w, h);
-        break;
-      case 3:
-        this.drawTopic4Watch(ctx, w, h);
-        break;
-      case 4:
-        this.drawTopic5Watch(ctx, w, h);
-        break;
-    }
+    // Delegate rendering to multi-chapter routing method
+    this.drawWatchContent(this.activeChapter, this.activeTopic, ctx, w, h);
 
     ctx.restore();
   }
@@ -1863,11 +1351,11 @@ class LearningApp {
     const h = this.exploreCanvas.height;
     
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = "#faf8f5";
+    ctx.fillStyle = this.theme === "dark" ? "#1e293b" : "#faf8f5";
     ctx.fillRect(0, 0, w, h);
 
     // Grid details
-    ctx.strokeStyle = "rgba(0,0,0,0.02)";
+    ctx.strokeStyle = this.theme === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)";
     ctx.lineWidth = 1;
     for (let x = 0; x < w; x += 40) {
       ctx.beginPath();
@@ -1876,23 +1364,8 @@ class LearningApp {
       ctx.stroke();
     }
 
-    switch (this.activeTopic) {
-      case 0:
-        this.drawTopic1Sandbox(ctx, w, h);
-        break;
-      case 1:
-        this.drawTopic2Sandbox(ctx, w, h);
-        break;
-      case 2:
-        this.drawTopic3Sandbox(ctx, w, h);
-        break;
-      case 3:
-        this.drawTopic4Sandbox(ctx, w, h);
-        break;
-      case 4:
-        this.drawTopic5Sandbox(ctx, w, h);
-        break;
-    }
+    // Delegate rendering to multi-chapter routing method
+    this.drawExploreContent(this.activeChapter, this.activeTopic, ctx, w, h);
   }
 
   // --- TOPIC 1 SIMULATION: SPLIT SLIDER ---
@@ -2814,7 +2287,7 @@ class LearningApp {
   // --- TAB 4: PRACTICE MINI QUIZZES ---
   initMiniQuiz() {
     const data = topicsData[this.activeTopic].quiz;
-    this.miniQuizAnswers = Array(5).fill(null);
+    this.miniQuizAnswers = Array(data.length).fill(null);
     this.activeMiniQuizQ = 0;
     this.renderMiniQuizCard();
   }
@@ -2830,7 +2303,7 @@ class LearningApp {
 
     container.innerHTML = `
       <div class="quiz-card">
-        <div class="quiz-progress">Question ${currentQIndex + 1} of 5</div>
+        <div class="quiz-progress">Question ${currentQIndex + 1} of ${quiz.length}</div>
         <div class="quiz-question">${q.question}</div>
         <div class="quiz-options">
           ${q.options.map((opt, oIdx) => {
@@ -2860,7 +2333,7 @@ class LearningApp {
         ${userAnswer !== null ? `
           <div class="quiz-nav-row">
             <button class="quiz-next-btn" onclick="app.nextMiniQuizQ()">
-              ${currentQIndex < 4 ? 'Next Question' : 'Finish Quiz'}
+              ${currentQIndex < quiz.length - 1 ? 'Next Question' : 'Finish Quiz'}
             </button>
           </div>
         ` : ''}
@@ -2874,12 +2347,12 @@ class LearningApp {
   }
 
   nextMiniQuizQ() {
-    if (this.activeMiniQuizQ < 4) {
+    const quiz = topicsData[this.activeTopic].quiz;
+    if (this.activeMiniQuizQ < quiz.length - 1) {
       this.activeMiniQuizQ++;
       this.renderMiniQuizCard();
     } else {
       // Calculate score
-      const quiz = topicsData[this.activeTopic].quiz;
       let score = 0;
       this.miniQuizAnswers.forEach((ans, idx) => {
         if (ans === quiz[idx].answerIndex) score++;
@@ -2890,7 +2363,7 @@ class LearningApp {
       container.innerHTML = `
         <div class="quiz-card" style="text-align:center;">
           <h3 style="color:var(--accent-secondary); margin-bottom: 0.5rem;">🎉 Practice Quiz Completed!</h3>
-          <p style="font-size:1.1rem; font-weight:700; margin-bottom:1rem;">Your score is: ${score} / 5</p>
+          <p style="font-size:1.1rem; font-weight:700; margin-bottom:1rem;">Your score is: ${score} / ${quiz.length}</p>
           <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1.5rem;">
             Excellent practice session! Now proceed to the Revision stage to memorize terms and review key points.
           </p>
@@ -2913,10 +2386,11 @@ class LearningApp {
   }
 
   renderFlashcard() {
-    const fc = topicsData[this.activeTopic].flashcards[this.flashcardIndex];
+    const flashcards = topicsData[this.activeTopic].flashcards;
+    const fc = flashcards[this.flashcardIndex];
     document.getElementById("flashcard-word-display").innerText = fc.word;
     document.getElementById("flashcard-def-display").innerText = fc.definition;
-    document.getElementById("flashcard-indicator-display").innerText = `${this.flashcardIndex + 1} / 5`;
+    document.getElementById("flashcard-indicator-display").innerText = `${this.flashcardIndex + 1} / ${flashcards.length}`;
     
     // reset flip
     this.flashcardFlipped = false;
@@ -2931,12 +2405,14 @@ class LearningApp {
   }
 
   nextFlashcard() {
-    this.flashcardIndex = (this.flashcardIndex + 1) % 5;
+    const len = topicsData[this.activeTopic].flashcards.length;
+    this.flashcardIndex = (this.flashcardIndex + 1) % len;
     this.renderFlashcard();
   }
 
   prevFlashcard() {
-    this.flashcardIndex = (this.flashcardIndex - 1 + 5) % 5;
+    const len = topicsData[this.activeTopic].flashcards.length;
+    this.flashcardIndex = (this.flashcardIndex - 1 + len) % len;
     this.renderFlashcard();
   }
 
@@ -2955,7 +2431,7 @@ class LearningApp {
 
   startFinalTest() {
     this.testActive = true;
-    this.testAnswers = Array(20).fill(null);
+    this.testAnswers = Array(finalTestQuestions.length).fill(null);
     this.testTime = 0;
 
     // Show sheets
@@ -3024,25 +2500,27 @@ class LearningApp {
       if (this.testAnswers[idx] === q.answerIndex) correctCount++;
     });
 
-    const percent = Math.round((correctCount / 20) * 100);
+    const percent = Math.round((correctCount / finalTestQuestions.length) * 100);
 
     // Update results panel
-    document.getElementById("results-score").innerText = `${correctCount} / 20`;
+    document.getElementById("results-score").innerText = `${correctCount} / ${finalTestQuestions.length}`;
     document.getElementById("results-percentage").innerText = `Score: ${percent}%`;
 
     const verdict = document.getElementById("results-verdict");
     const summaryText = document.getElementById("results-summary-text");
     const certBox = document.getElementById("cert-unlock-container");
 
+    const passThreshold = Math.ceil(finalTestQuestions.length * 0.8);
+
     if (percent >= 80) {
       verdict.innerText = "Outstanding Accomplishment!";
       verdict.style.color = "var(--accent-secondary)";
-      summaryText.innerText = `Sensational score! You have proven a strong command over TS SCERT Chapter 1. The custom SRIVARDHAN honours certificate has been successfully unlocked!`;
+      summaryText.innerText = `Sensational score! You have proven a strong command over Telangana SCERT Class 8 Social Studies Chapter ${this.activeChapter + 1}. The custom SRIVARDHAN honours certificate has been successfully unlocked!`;
       certBox.style.display = "block";
     } else {
       verdict.innerText = "Exam Completed!";
       verdict.style.color = "var(--accent-primary)";
-      summaryText.innerText = `You scored ${percent}%. You need at least 80% (16/20 correct) to earn the printable SRIVARDHAN certificate. Please study the lessons and try again!`;
+      summaryText.innerText = `You scored ${percent}%. You need at least 80% (${passThreshold}/${finalTestQuestions.length} correct) to earn the printable SRIVARDHAN certificate. Please study the lessons and try again!`;
       certBox.style.display = "none";
     }
 
@@ -3085,12 +2563,15 @@ class LearningApp {
     this.testAnswers.forEach((ans, idx) => {
       if (ans === finalTestQuestions[idx].answerIndex) correctCount++;
     });
-    const percent = Math.round((correctCount / 20) * 100);
+    const percent = Math.round((correctCount / finalTestQuestions.length) * 100);
 
     // Populate Print template details
     document.getElementById("cert-recipient-name").innerText = studentName;
-    document.getElementById("cert-score-display").innerText = `${correctCount} / 20`;
+    document.getElementById("cert-score-display").innerText = `${correctCount} / ${finalTestQuestions.length}`;
     document.getElementById("cert-percent-display").innerText = `${percent}%`;
+
+    const chapterName = document.getElementById("chapter-select").options[this.activeChapter].text;
+    document.getElementById("cert-chapter-name").innerText = chapterName;
     
     // Set current date formatted nicely
     const today = new Date();
@@ -3101,6 +2582,904 @@ class LearningApp {
 
     // Print
     window.print();
+  }
+
+  // --- DYNAMIC MULTI-CHAPTER WATCH RENDERING ---
+  drawWatchContent(chapter, topic, ctx, w, h) {
+    const cx = w / 2;
+    const cy = h / 2;
+    const t = this.watchFrame;
+    const progress = (t % 300) / 300;
+
+    // Direct Chapter 1 drawing to the legacy draw methods
+    if (chapter === 0) {
+      if (topic === 0) this.drawTopic1Watch(ctx, w, h);
+      else if (topic === 1) this.drawTopic2Watch(ctx, w, h);
+      else if (topic === 2) this.drawTopic3Watch(ctx, w, h);
+      else if (topic === 3) this.drawTopic4Watch(ctx, w, h);
+      else if (topic === 4) this.drawTopic5Watch(ctx, w, h);
+      return;
+    }
+
+    // Colors
+    const primaryColor = this.theme === "dark" ? "#f59e0b" : "#b0813f";
+    const secondaryColor = this.theme === "dark" ? "#10b981" : "#2f5647";
+    const textColor = this.theme === "dark" ? "#f1f5f9" : "#121c2c";
+    const mutedColor = this.theme === "dark" ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
+
+    ctx.save();
+    ctx.lineWidth = 2;
+
+    if (chapter === 1) {
+      // Ch 2: Energy from the Sun
+      if (topic === 0) {
+        // Solar radiation and insolation
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Solar Radiation and Insolation", 20, 30);
+
+        // Draw Sun (Left)
+        ctx.fillStyle = "#ffaa00";
+        ctx.beginPath();
+        ctx.arc(80, cy, 50, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = "#ff5500";
+        ctx.stroke();
+
+        // Draw curved Earth (Right)
+        ctx.fillStyle = "#2a539b";
+        ctx.beginPath();
+        ctx.arc(w + 100, cy, 280, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = "#5da56e";
+        ctx.stroke();
+
+        // Draw rays
+        ctx.strokeStyle = "rgba(255,170,0,0.6)";
+        // Equatorial straight ray
+        ctx.beginPath();
+        ctx.moveTo(130, cy);
+        ctx.lineTo(w - 180, cy);
+        ctx.stroke();
+        ctx.fillStyle = "#ff3300";
+        ctx.fillText("Vertical Rays (Concentrated)", w - 310, cy - 10);
+
+        // Polar slanted ray
+        ctx.beginPath();
+        ctx.moveTo(120, cy - 30);
+        ctx.lineTo(w - 200, cy - 130);
+        ctx.stroke();
+        ctx.fillStyle = "#00aaff";
+        ctx.fillText("Slanted Rays (Spread Out)", w - 340, cy - 145);
+      } else if (topic === 1) {
+        // Temperature zones
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Earth Temperature Zones", 20, 30);
+
+        // Draw Earth sphere
+        ctx.strokeStyle = primaryColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 110, 0, 2*Math.PI);
+        ctx.stroke();
+
+        // Torrid Zone
+        ctx.fillStyle = "rgba(255, 69, 0, 0.2)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 110, -Math.PI/6, Math.PI/6);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#ff4500";
+        ctx.fillText("TORRID ZONE (Tropics)", cx + 130, cy + 5);
+
+        // Temperate Zone
+        ctx.fillStyle = "rgba(46, 139, 87, 0.2)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 110, -Math.PI*0.35, -Math.PI/6);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#2e8b57";
+        ctx.fillText("TEMPERATE ZONE", cx + 70, cy - 75);
+
+        // Frigid Zone
+        ctx.fillStyle = "rgba(30, 144, 255, 0.2)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 110, -Math.PI/2, -Math.PI*0.35);
+        ctx.lineTo(cx, cy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = "#1e90ff";
+        ctx.fillText("FRIGID ZONE (Polar)", cx - 30, cy - 130);
+      } else if (topic === 2) {
+        // Land vs Water heating
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Land vs. Water Differential Heating", 20, 30);
+
+        // Land (Left)
+        ctx.fillStyle = "#8b5a2b";
+        ctx.fillRect(cx - 160, cy - 40, 140, 100);
+        ctx.fillStyle = textColor;
+        ctx.fillText("LAND (Heats Fast)", cx - 160, cy + 85);
+        
+        // Water (Right)
+        ctx.fillStyle = "#1e90ff";
+        ctx.fillRect(cx + 20, cy - 40, 140, 100);
+        ctx.fillStyle = textColor;
+        ctx.fillText("WATER (Heats Slow)", cx + 20, cy + 85);
+
+        // Heat waves
+        const waveY = cy - 40 - Math.abs(Math.sin(t * 0.05)) * 15;
+        ctx.strokeStyle = "#ff0000";
+        ctx.beginPath();
+        ctx.moveTo(cx - 120, cy);
+        ctx.quadraticCurveTo(cx - 100, waveY, cx - 80, cy);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#4a90e2";
+        ctx.beginPath();
+        ctx.moveTo(cx + 60, cy);
+        ctx.quadraticCurveTo(cx + 80, cy - 40 - Math.abs(Math.sin(t * 0.02)) * 8, cx + 100, cy);
+        ctx.stroke();
+      }
+    } else if (chapter === 2) {
+      // Ch 3: Earth Movements and Seasons
+      if (topic === 0) {
+        // Rotation
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Earth Axis Rotation", 20, 30);
+
+        // Tilted axis line
+        ctx.strokeStyle = primaryColor;
+        ctx.beginPath();
+        ctx.moveTo(cx - 50, cy - 140);
+        ctx.lineTo(cx + 50, cy + 140);
+        ctx.stroke();
+
+        // Earth globe
+        ctx.fillStyle = "rgba(47, 86, 71, 0.15)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 100, 0, 2*Math.PI);
+        ctx.fill();
+
+        // Circle of illumination (vertical split)
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 100, -Math.PI/2, Math.PI/2);
+        ctx.fill();
+
+        // Rotation arrow
+        ctx.strokeStyle = "#ffaa00";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 120, -0.2, 0.2);
+        ctx.stroke();
+        ctx.fillStyle = "#ffaa00";
+        ctx.fillText("Rotation (West to East)", cx - 60, cy - 110);
+      } else if (topic === 1) {
+        // Revolution and Seasons
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Earth Revolution Orbit", 20, 30);
+
+        // Draw Sun (center)
+        ctx.fillStyle = "#ffaa00";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 25, 0, 2*Math.PI);
+        ctx.fill();
+
+        // Orbit ellipse
+        ctx.strokeStyle = "rgba(176,129,63,0.2)";
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, 180, 80, 0, 0, 2*Math.PI);
+        ctx.stroke();
+
+        // Earth positions
+        const ex = cx + Math.cos(progress * 2 * Math.PI) * 180;
+        const ey = cy + Math.sin(progress * 2 * Math.PI) * 80;
+        ctx.fillStyle = "#4a90e2";
+        ctx.beginPath();
+        ctx.arc(ex, ey, 12, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
+      } else if (topic === 2) {
+        // Solstices and equinoxes
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Solstices & Equinoxes Position", 20, 30);
+
+        // Central Sun
+        ctx.fillStyle = "#ffaa00";
+        ctx.beginPath();
+        ctx.arc(cx, cy, 20, 0, 2*Math.PI);
+        ctx.fill();
+
+        // June Solstice (Left)
+        ctx.fillStyle = "#4a90e2";
+        ctx.beginPath();
+        ctx.arc(cx - 160, cy, 15, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.fillStyle = textColor;
+        ctx.fillText("June 21 (Summer Solstice)", cx - 240, cy + 35);
+
+        // Dec Solstice (Right)
+        ctx.beginPath();
+        ctx.arc(cx + 160, cy, 15, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.fillText("Dec 22 (Winter Solstice)", cx + 80, cy + 35);
+
+        // Equinoxes
+        ctx.beginPath();
+        ctx.arc(cx, cy - 60, 15, 0, 2*Math.PI);
+        ctx.fill();
+        ctx.fillText("March 21 (Equinox)", cx - 50, cy - 85);
+      }
+    } else if (chapter === 3) {
+      // Ch 4: Polar Regions
+      if (topic === 0) {
+        // Tundra and permafrost
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Tundra Soil layers (Permafrost)", 20, 30);
+
+        // Soil layers
+        ctx.fillStyle = "#8a6d4e"; // thawed active layer
+        ctx.fillRect(cx - 180, cy - 40, 360, 40);
+        ctx.fillStyle = "#5c6b80"; // permafrost ice-soil
+        ctx.fillRect(cx - 180, cy, 360, 100);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText("Thawed top layer (Summer vegetation)", cx - 170, cy - 15);
+        ctx.fillText("Permanently Frozen Subsoil (PERMAFROST)", cx - 170, cy + 50);
+      } else if (topic === 1) {
+        // Polar wildlife
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Polar Wildlife blubber insulation", 20, 30);
+
+        // Whale blubber diagram
+        ctx.fillStyle = "rgba(47, 86, 71, 0.1)";
+        ctx.fillRect(cx - 160, cy - 60, 320, 120);
+        ctx.strokeStyle = primaryColor;
+        ctx.strokeRect(cx - 160, cy - 60, 320, 120);
+
+        ctx.fillStyle = "#8c6b3f"; // muscle
+        ctx.fillRect(cx - 120, cy - 40, 240, 80);
+        ctx.fillStyle = "#fcfaf6"; // blubber layer
+        ctx.strokeRect(cx - 120, cy - 40, 240, 80);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = "rgba(240,240,240,0.8)";
+        ctx.strokeRect(cx - 120, cy - 40, 240, 80);
+        ctx.lineWidth = 2; // reset
+
+        ctx.fillStyle = textColor;
+        ctx.fillText("Insulating Blubber layer (Fat)", cx - 80, cy - 45);
+        ctx.fillText("Core Muscles (Warm)", cx - 60, cy + 5);
+      } else if (topic === 2) {
+        // Inuit Igloo
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 13px 'Plus Jakarta Sans'";
+        ctx.fillText("Inuit Igloo Thermal Dynamics", 20, 30);
+
+        // Igloo outline
+        ctx.strokeStyle = primaryColor;
+        ctx.beginPath();
+        ctx.arc(cx, cy + 50, 80, Math.PI, 2*Math.PI);
+        ctx.stroke();
+        // floor
+        ctx.beginPath();
+        ctx.moveTo(cx - 80, cy + 50);
+        ctx.lineTo(cx + 80, cy + 50);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffaa00";
+        ctx.fillText("Inside: Warm (+15°C)", cx - 50, cy + 10);
+        ctx.fillStyle = "#00aaff";
+        ctx.fillText("Outside: Freezing (-30°C)", cx - 200, cy - 20);
+      }
+    } else {
+      // General fallbacks for Chapters 5-10
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 14px 'Plus Jakarta Sans'";
+      ctx.textAlign = "center";
+      ctx.fillText(`Chapter ${chapter + 1} Visual Lecture`, cx, cy - 40);
+      ctx.font = "12px 'Plus Jakarta Sans'";
+      ctx.fillText(`Topic ${topic + 1}: ${topicsData[topic].title}`, cx, cy - 10);
+      
+      // Animated chalkboard loader circle
+      ctx.strokeStyle = primaryColor;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 40, 30, 0, progress * 2 * Math.PI);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // --- DYNAMIC MULTI-CHAPTER EXPLORE SIMULATIONS ---
+  initExploreSimulation() {
+    const container = document.getElementById("sandbox-controls-container");
+    container.innerHTML = "";
+    
+    // Clear state
+    this.exploreState = {
+      topic: this.activeTopic,
+      canvas: this.exploreCanvas,
+      ctx: this.exploreCtx
+    };
+
+    const statusMsg = document.getElementById("explore-status-msg");
+    if (statusMsg) statusMsg.innerText = "";
+
+    // Set custom configurations for all chapters
+    const ch = this.activeChapter;
+    const tp = this.activeTopic;
+
+    if (ch === 0) {
+      // Legacy Chapter 1 sliders setup
+      if (tp === 0) {
+        this.exploreState.sliderX = this.exploreCanvas.width / 2;
+        this.exploreState.dragging = false;
+        container.innerHTML = `<p style="font-size:0.85rem; color:var(--text-secondary);"><strong>Drag the split slider</strong> to compare satellite photograph vs simplified map.</p>`;
+      } else if (tp === 1) {
+        this.exploreState.activeMap = 0;
+        container.innerHTML = `
+          <div style="display:flex; gap:0.5rem;">
+            <button class="watch-btn" onclick="app.setExploreMap(0)">Babylonian Tablet</button>
+            <button class="watch-btn" onclick="app.setExploreMap(1)">Al-Idrisi Map</button>
+            <button class="watch-btn" onclick="app.setExploreMap(2)">Mercator Grid</button>
+          </div>
+        `;
+      } else if (tp === 2) {
+        this.exploreState.surveyStep = 0;
+        this.exploreState.dialVal = 0;
+        this.exploreState.triangles = [];
+        this.renderTriangulationControls(container);
+      } else if (tp === 3) {
+        this.exploreState.layers = { relief: true, rainfall: false, population: false };
+        container.innerHTML = `
+          <div style="display:flex; gap:1.5rem; flex-wrap: wrap;">
+            <label><input type="checkbox" checked onchange="app.toggleThematicLayer('relief', this.checked)"> 🏔️ Relief</label>
+            <label><input type="checkbox" onchange="app.toggleThematicLayer('rainfall', this.checked)"> 🌧️ Rainfall</label>
+            <label><input type="checkbox" onchange="app.toggleThematicLayer('population', this.checked)"> 👥 Population</label>
+          </div>
+        `;
+      } else if (tp === 4) {
+        this.exploreState.heightVal = 120;
+        this.exploreState.profile = "gentle";
+        container.innerHTML = `
+          <div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:center;">
+            <label>Height: <span id="height-lbl">120m</span> <input type="range" min="50" max="200" value="120" oninput="app.setContourHeight(this.value)"></label>
+            <select onchange="app.setContourProfile(this.value)">
+              <option value="gentle">Gentle Slope</option>
+              <option value="steep">Steep Slope</option>
+              <option value="cliff">Cliff</option>
+            </select>
+          </div>
+        `;
+      }
+    } else if (ch === 1) {
+      // Ch 2: Sun Energy
+      if (tp === 0 || tp === 1) {
+        this.exploreState.latitude = 0;
+        container.innerHTML = `
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <label style="font-weight:700; color:var(--text-primary);">Select Latitude: <span id="lat-lbl" style="color:var(--accent-primary);">0° (Equator)</span></label>
+            <input type="range" min="-90" max="90" value="0" style="accent-color:var(--accent-primary);" oninput="app.updateLatitude(this.value)">
+          </div>
+        `;
+      } else if (tp === 2) {
+        this.exploreState.heatingTime = 0;
+        this.exploreState.landTemp = 28;
+        this.exploreState.waterTemp = 28;
+        container.innerHTML = `
+          <div style="display:flex; gap:1rem; align-items:center;">
+            <button class="primary-btn" onclick="app.triggerDifferentialHeating()">Heat Up Elements (10s)</button>
+            <span style="font-size:0.85rem; color:var(--text-secondary);" id="heating-stats">Initial State: Balanced at 28°C</span>
+          </div>
+        `;
+      }
+    } else if (ch === 2) {
+      // Ch 3: Seasons
+      this.exploreState.month = 0;
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; width:100%;">
+          <label style="font-weight:700; color:var(--text-primary);">Orbit Month: <span id="month-lbl" style="color:var(--accent-primary);">January</span></label>
+          <input type="range" min="0" max="11" value="0" style="width:220px; accent-color:var(--accent-primary);" oninput="app.updateMonthOrbit(this.value)">
+        </div>
+      `;
+    } else if (ch === 3) {
+      // Ch 4: Polar Regions
+      this.exploreState.winterSeason = true;
+      container.innerHTML = `
+        <div style="display:flex; gap:1rem; align-items:center;">
+          <label style="font-weight:700; color:var(--text-primary);">Toggle Season:</label>
+          <button class="watch-btn" onclick="app.togglePolarSeason(true)">Polar Winter (Darkness)</button>
+          <button class="watch-btn" onclick="app.togglePolarSeason(false)">Polar Summer (24h Day)</button>
+        </div>
+      `;
+    } else if (ch === 4) {
+      // Ch 5: Forests
+      this.exploreState.loggingRate = 20;
+      this.exploreState.reforestOn = true;
+      container.innerHTML = `
+        <div style="display:flex; gap:2rem; align-items:center; flex-wrap:wrap;">
+          <label style="font-weight:700; color:var(--text-primary);">Logging Speed: <span id="log-lbl" style="color:var(--accent-primary);">20%</span> <input type="range" min="0" max="100" value="20" oninput="app.updateLogging(this.value)"></label>
+          <label style="font-weight:700; color:var(--text-primary); cursor:pointer;"><input type="checkbox" checked onchange="app.updateReforest(this.checked)"> Active Reforestation</label>
+        </div>
+      `;
+    } else if (ch === 5) {
+      // Ch 6: Mining
+      this.exploreState.miningMethod = "open";
+      this.exploreState.mineDepth = 15;
+      container.innerHTML = `
+        <div style="display:flex; gap:2rem; align-items:center; flex-wrap:wrap;">
+          <label style="font-weight:700; color:var(--text-primary);">Mining Depth: <span id="depth-lbl" style="color:var(--accent-primary);">15m</span> <input type="range" min="10" max="180" value="15" oninput="app.updateMineDepth(this.value)"></label>
+          <select onchange="app.updateMiningMethod(this.value)" style="padding:0.4rem 0.8rem; border-radius:6px; border:1px solid var(--border-color); font-family:var(--font-sans); outline:none;">
+            <option value="open">Open-Cast Pit Mining</option>
+            <option value="under">Underground Shaft Mining</option>
+          </select>
+        </div>
+      `;
+    } else if (ch === 6) {
+      // Ch 7: Banking
+      this.exploreState.reserveRatio = 10;
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <label style="font-weight:700; color:var(--text-primary);">Reserve Ratio: <span id="reserve-lbl" style="color:var(--accent-primary);">10%</span></label>
+          <input type="range" min="5" max="50" value="10" style="accent-color:var(--accent-primary);" oninput="app.updateReserveRatio(this.value)">
+        </div>
+      `;
+    } else if (ch === 7) {
+      // Ch 8: Technology
+      this.exploreState.automationRate = 20;
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <label style="font-weight:700; color:var(--text-primary);">Factory Automation: <span id="auto-lbl" style="color:var(--accent-primary);">20%</span></label>
+          <input type="range" min="0" max="100" value="20" style="accent-color:var(--accent-primary);" oninput="app.updateAutomation(this.value)">
+        </div>
+      `;
+    } else if (ch === 8) {
+      // Ch 9: Public Health
+      this.exploreState.healthBudget = 30; // public clinics percentage
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <label style="font-weight:700; color:var(--text-primary);">State Health Budget for PHCs: <span id="budget-lbl" style="color:var(--accent-primary);">30%</span></label>
+          <input type="range" min="10" max="90" value="30" style="accent-color:var(--accent-primary);" oninput="app.updateHealthBudget(this.value)">
+        </div>
+      `;
+    } else if (ch === 9) {
+      // Ch 10: Landlords
+      this.exploreState.landlordTax = 40;
+      container.innerHTML = `
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <label style="font-weight:700; color:var(--text-primary);">Feudal Rent Rate: <span id="rent-lbl" style="color:var(--accent-primary);">40%</span></label>
+          <input type="range" min="10" max="95" value="40" style="accent-color:var(--accent-primary);" oninput="app.updateLandlordTax(this.value)">
+        </div>
+      `;
+    }
+
+    this.renderExploreSandbox();
+  }
+
+  // --- DYNAMIC CONTROL UPDATES ENGINE ---
+  updateLatitude(val) {
+    this.exploreState.latitude = parseInt(val);
+    const lbl = document.getElementById("lat-lbl");
+    if (lbl) lbl.innerText = `${val}° ${val == 0 ? "(Equator)" : val > 0 ? "N" : "S"}`;
+    this.renderExploreSandbox();
+  }
+
+  triggerDifferentialHeating() {
+    let seconds = 0;
+    const statsEl = document.getElementById("heating-stats");
+    this.exploreState.landTemp = 28;
+    this.exploreState.waterTemp = 28;
+
+    const timer = setInterval(() => {
+      seconds++;
+      this.exploreState.landTemp += 2.8; // heats up fast
+      this.exploreState.waterTemp += 0.8; // heats up slow
+      
+      if (statsEl) {
+        statsEl.innerText = `Heating: ${seconds}s | Land: ${this.exploreState.landTemp.toFixed(1)}°C | Water: ${this.exploreState.waterTemp.toFixed(1)}°C`;
+      }
+      this.renderExploreSandbox();
+
+      if (seconds >= 10) clearInterval(timer);
+    }, 200);
+  }
+
+  updateMonthOrbit(val) {
+    const monthsList = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    this.exploreState.month = parseInt(val);
+    const lbl = document.getElementById("month-lbl");
+    if (lbl) lbl.innerText = monthsList[val];
+    this.renderExploreSandbox();
+  }
+
+  togglePolarSeason(isWinter) {
+    this.exploreState.winterSeason = isWinter;
+    this.renderExploreSandbox();
+  }
+
+  updateLogging(val) {
+    this.exploreState.loggingRate = parseInt(val);
+    const lbl = document.getElementById("log-lbl");
+    if (lbl) lbl.innerText = `${val}%`;
+    this.renderExploreSandbox();
+  }
+
+  updateReforest(checked) {
+    this.exploreState.reforestOn = checked;
+    this.renderExploreSandbox();
+  }
+
+  updateMineDepth(val) {
+    this.exploreState.mineDepth = parseInt(val);
+    const lbl = document.getElementById("depth-lbl");
+    if (lbl) lbl.innerText = `${val} meters`;
+    this.renderExploreSandbox();
+  }
+
+  updateMiningMethod(val) {
+    this.exploreState.miningMethod = val;
+    this.renderExploreSandbox();
+  }
+
+  updateReserveRatio(val) {
+    this.exploreState.reserveRatio = parseInt(val);
+    const lbl = document.getElementById("reserve-lbl");
+    if (lbl) lbl.innerText = `${val}%`;
+    this.renderExploreSandbox();
+  }
+
+  updateAutomation(val) {
+    this.exploreState.automationRate = parseInt(val);
+    const lbl = document.getElementById("auto-lbl");
+    if (lbl) lbl.innerText = `${val}%`;
+    this.renderExploreSandbox();
+  }
+
+  updateHealthBudget(val) {
+    this.exploreState.healthBudget = parseInt(val);
+    const lbl = document.getElementById("budget-lbl");
+    if (lbl) lbl.innerText = `${val}%`;
+    this.renderExploreSandbox();
+  }
+
+  updateLandlordTax(val) {
+    this.exploreState.landlordTax = parseInt(val);
+    const lbl = document.getElementById("rent-lbl");
+    if (lbl) lbl.innerText = `${val}%`;
+    this.renderExploreSandbox();
+  }
+
+  // --- DYNAMIC MULTI-CHAPTER EXPLORE DRAWINGS ---
+  drawExploreContent(chapter, topic, ctx, w, h) {
+    // If Chapter 1, delegate to existing sandboxes
+    if (chapter === 0) {
+      if (topic === 0) this.drawTopic1Sandbox(ctx, w, h);
+      else if (topic === 1) this.drawTopic2Sandbox(ctx, w, h);
+      else if (topic === 2) this.drawTopic3Sandbox(ctx, w, h);
+      else if (topic === 3) this.drawTopic4Sandbox(ctx, w, h);
+      else if (topic === 4) this.drawTopic5Sandbox(ctx, w, h);
+      return;
+    }
+
+    const primaryColor = this.theme === "dark" ? "#f59e0b" : "#b0813f";
+    const secondaryColor = this.theme === "dark" ? "#10b981" : "#2f5647";
+    const textColor = this.theme === "dark" ? "#f1f5f9" : "#121c2c";
+    const boxBg = this.theme === "dark" ? "#1b2138" : "#ffffff";
+
+    ctx.save();
+    ctx.lineWidth = 2;
+
+    if (chapter === 1) {
+      // Ch 2: Sun Energy
+      if (topic === 0 || topic === 1) {
+        // Insolation angle simulator
+        const lat = this.exploreState.latitude || 0;
+        const rad = lat * Math.PI / 180;
+
+        // Draw Earth arc
+        ctx.strokeStyle = primaryColor;
+        ctx.beginPath();
+        ctx.arc(w/2, h + 100, 200, Math.PI, 2*Math.PI);
+        ctx.stroke();
+
+        // Ray angle calculation
+        ctx.strokeStyle = "#ff9900";
+        ctx.lineWidth = 3;
+        const targetX = w/2 + Math.sin(rad) * 200;
+        const targetY = h + 100 - Math.cos(rad) * 200;
+
+        ctx.beginPath();
+        ctx.moveTo(targetX, targetY - 140);
+        ctx.lineTo(targetX, targetY);
+        ctx.stroke();
+
+        // Draw normal vector at intersection
+        ctx.strokeStyle = "#ff0000";
+        ctx.beginPath();
+        ctx.moveTo(targetX, targetY);
+        ctx.lineTo(targetX + Math.sin(rad)*40, targetY - Math.cos(rad)*40);
+        ctx.stroke();
+
+        // Stats Box
+        ctx.fillStyle = boxBg;
+        ctx.fillRect(30, 40, 240, 100);
+        ctx.strokeStyle = primaryColor;
+        ctx.strokeRect(30, 40, 240, 100);
+
+        ctx.fillStyle = textColor;
+        ctx.font = "12px sans-serif";
+        ctx.fillText(`Latitude: ${lat}°`, 45, 65);
+        ctx.fillText(`Ray Strike Angle: ${90 - Math.abs(lat)}°`, 45, 85);
+        ctx.fillText(`Heat Intensity: ${Math.round(Math.cos(rad) * 100)}%`, 45, 105);
+      } else if (topic === 2) {
+        // Land vs Water temp values
+        const lT = this.exploreState.landTemp || 28;
+        const wT = this.exploreState.waterTemp || 28;
+
+        // Render thermometer bars
+        ctx.fillStyle = "#8c6b3f";
+        ctx.fillRect(100, h - 50 - lT * 3, 50, lT * 3);
+        ctx.fillStyle = "#4a90e2";
+        ctx.fillRect(w - 150, h - 50 - wT * 3, 50, wT * 3);
+
+        ctx.fillStyle = textColor;
+        ctx.font = "bold 14px sans-serif";
+        ctx.fillText(`Land: ${lT.toFixed(1)}°C`, 90, h - 60 - lT * 3);
+        ctx.fillText(`Water: ${wT.toFixed(1)}°C`, w - 165, h - 60 - wT * 3);
+      }
+    } else if (chapter === 2) {
+      // Ch 3: Seasons Orbit Sandbox
+      const monthIdx = this.exploreState.month || 0;
+      const angle = (monthIdx * 30) * Math.PI / 180;
+
+      // Draw orbit path
+      ctx.strokeStyle = "rgba(176,129,63,0.15)";
+      ctx.beginPath();
+      ctx.ellipse(w/2, h/2, 220, 110, 0, 0, 2*Math.PI);
+      ctx.stroke();
+
+      // Central Sun
+      ctx.fillStyle = "#ffaa00";
+      ctx.beginPath();
+      ctx.arc(w/2, h/2, 30, 0, 2*Math.PI);
+      ctx.fill();
+
+      // Earth position
+      const ex = w/2 + Math.cos(angle) * 220;
+      const ey = h/2 + Math.sin(angle) * 110;
+
+      // Earth body
+      ctx.fillStyle = "#3b5998";
+      ctx.beginPath();
+      ctx.arc(ex, ey, 18, 0, 2*Math.PI);
+      ctx.fill();
+      ctx.strokeStyle = "#fff";
+      ctx.stroke();
+
+      // Tilted axis line on Earth
+      ctx.strokeStyle = "#ff0000";
+      ctx.beginPath();
+      ctx.moveTo(ex - 8, ey - 22);
+      ctx.lineTo(ex + 8, ey + 22);
+      ctx.stroke();
+
+      // Stats card
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(w - 280, 40, 240, 100);
+      ctx.strokeStyle = primaryColor;
+      ctx.strokeRect(w - 280, 40, 240, 100);
+
+      ctx.fillStyle = textColor;
+      ctx.font = "12px sans-serif";
+      const seasons = ["Winter", "Winter", "Spring Equinox", "Summer", "Summer", "Summer Solstice", "Monsoon", "Autumn", "Autumn Equinox", "Winter", "Winter", "Winter"];
+      ctx.fillText(`Month: ${monthIdx + 1}`, w - 265, 65);
+      ctx.fillText(`Season: ${seasons[monthIdx]}`, w - 265, 85);
+      ctx.fillText(`Hemi Tilt: ${monthIdx >= 3 && monthIdx <= 8 ? "North Leaning" : "South Leaning"}`, w - 265, 105);
+    } else if (chapter === 3) {
+      // Ch 4: Polar Regions Sandbox
+      const isWinter = this.exploreState.winterSeason;
+
+      // Draw polar background
+      ctx.fillStyle = isWinter ? "#0b0f19" : "#e6f2ff";
+      ctx.fillRect(0, 0, w, h);
+
+      // Ice layer
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, h - 80, w, 80);
+
+      // Inuit Igloo (if winter) or skin tent (if summer)
+      if (isWinter) {
+        ctx.strokeStyle = "#a0b0c0";
+        ctx.beginPath();
+        ctx.arc(w/2, h - 80, 60, Math.PI, 2*Math.PI);
+        ctx.stroke();
+        ctx.fillStyle = "#fff";
+        ctx.fill();
+        ctx.fillStyle = "#ffaa00";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText("Igloo (Traps Heat)", w/2 - 50, h - 110);
+      } else {
+        // Tent
+        ctx.strokeStyle = "#8b5a2b";
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 50, h - 80);
+        ctx.lineTo(w/2, h - 160);
+        ctx.lineTo(w/2 + 50, h - 80);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = "#e0a96d";
+        ctx.fill();
+        ctx.fillStyle = textColor;
+        ctx.fillText("Skin Tent (Summer)", w/2 - 50, h - 90);
+      }
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 12px sans-serif";
+      ctx.fillText(isWinter ? "Polar Night (24h Darkness)" : "Midnight Sun (24h Daylight)", 30, 40);
+    } else if (chapter === 4) {
+      // Ch 5: Forests logging
+      const logRate = this.exploreState.loggingRate || 20;
+      const ref = this.exploreState.reforestOn;
+
+      const health = Math.max(0, Math.min(100, 100 - logRate + (ref ? 30 : 0)));
+
+      // Draw forests trees (represented by green stalks)
+      const count = Math.round(health * 0.15);
+      for (let i = 0; i < count; i++) {
+        const tx = 50 + (i * 45) % (w - 100);
+        const ty = h - 60 - (i * 10) % 80;
+        
+        ctx.fillStyle = "#8b5a2b";
+        ctx.fillRect(tx - 3, ty, 6, h - ty);
+        
+        ctx.fillStyle = "rgba(46, 139, 87, 0.8)";
+        ctx.beginPath();
+        ctx.arc(tx, ty, 15, 0, 2*Math.PI);
+        ctx.fill();
+      }
+
+      // Stats HUD
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(30, 40, 240, 100);
+      ctx.strokeStyle = primaryColor;
+      ctx.strokeRect(30, 40, 240, 100);
+
+      ctx.fillStyle = textColor;
+      ctx.font = "12px sans-serif";
+      ctx.fillText(`Logging Rate: ${logRate}%`, 45, 65);
+      ctx.fillText(`Reforestation: ${ref ? "ON" : "OFF"}`, 45, 85);
+      ctx.fillText(`Forest Health Index: ${health}%`, 45, 105);
+    } else if (chapter === 5) {
+      // Ch 6: Mining depth sandbox
+      const method = this.exploreState.miningMethod;
+      const depth = this.exploreState.mineDepth;
+
+      // Draw surface layer
+      ctx.fillStyle = "#8b5a2b";
+      ctx.fillRect(0, h - 120, w, 120);
+
+      if (method === "open") {
+        // Open-cast terraced pit
+        ctx.fillStyle = this.theme === "dark" ? "#0a0f1d" : "#faf8f5";
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 120, h - 120);
+        ctx.lineTo(w/2 - 60, h - 120 + depth/2);
+        ctx.lineTo(w/2 + 60, h - 120 + depth/2);
+        ctx.lineTo(w/2 + 120, h - 120);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = primaryColor;
+        ctx.stroke();
+
+        ctx.fillStyle = textColor;
+        ctx.fillText("Open-Cast Pit Terrace", w/2 - 60, h - 100);
+      } else {
+        // Underground shaft
+        ctx.strokeStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.moveTo(w/2 - 20, h - 120);
+        ctx.lineTo(w/2 - 20, h - 120 + depth);
+        ctx.lineTo(w/2 + 20, h - 120 + depth);
+        ctx.lineTo(w/2 + 20, h - 120);
+        ctx.stroke();
+
+        // Elevator lift
+        ctx.fillStyle = primaryColor;
+        ctx.fillRect(w/2 - 15, h - 120 + depth - 20, 30, 20);
+
+        ctx.fillStyle = "#ff0000";
+        ctx.fillText("Underground Tunnel", w/2 - 50, h - 120 + depth + 20);
+      }
+    } else if (chapter === 6) {
+      // Ch 7: Credit creation table
+      const reserve = this.exploreState.reserveRatio || 10;
+      const multiplier = (100 / reserve).toFixed(1);
+
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(w/2 - 200, h/2 - 140, 400, 240);
+      ctx.strokeStyle = primaryColor;
+      ctx.strokeRect(w/2 - 200, h/2 - 140, 400, 240);
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("Credit Multiplier Ledger", w/2 - 90, h/2 - 110);
+      ctx.font = "12px monospace";
+      ctx.fillText(`Initial Deposit: Rs 10,000`, w/2 - 170, h/2 - 70);
+      ctx.fillText(`Reserve Ratio:   ${reserve}%`, w/2 - 170, h/2 - 40);
+      ctx.fillText(`Multiplier:      ${multiplier}x`, w/2 - 170, h/2 - 10);
+      
+      const totalCredit = (10000 * multiplier).toLocaleString("en-IN");
+      ctx.fillStyle = secondaryColor;
+      ctx.fillText(`Total Money Supply: Rs ${totalCredit}`, w/2 - 170, h/2 + 40);
+    } else if (chapter === 7) {
+      // Ch 8: Industrial automation
+      const autoRate = this.exploreState.automationRate || 20;
+      
+      const output = Math.round(100 + autoRate * 8);
+      const jobs = Math.max(5, Math.round(100 - autoRate * 0.95));
+
+      // Draw stats indicators
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(50, 40, w - 100, 160);
+      ctx.strokeStyle = primaryColor;
+      ctx.strokeRect(50, 40, w - 100, 160);
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 15px sans-serif";
+      ctx.fillText("Automation & Workforce Indicators", 70, 70);
+      
+      ctx.font = "13px sans-serif";
+      ctx.fillText(`Automation Rate: ${autoRate}%`, 75, 110);
+      ctx.fillText(`Production Output: ${output} rolls/day (+${autoRate * 8}%)`, 75, 140);
+      ctx.fillText(`Workforce Employed: ${jobs} Artisans (-${autoRate}%)`, 75, 170);
+    } else if (chapter === 8) {
+      // Ch 9: Public health budget allocation
+      const budget = this.exploreState.healthBudget || 30;
+      const deathRate = Math.max(5, 75 - budget * 0.7);
+
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(50, 40, w - 100, 160);
+      ctx.strokeStyle = primaryColor;
+      ctx.strokeRect(50, 40, w - 100, 160);
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("Healthcare Budget Allocation Impact", 70, 70);
+      ctx.font = "13px sans-serif";
+      ctx.fillText(`Budget Allocated to local PHCs: ${budget}%`, 75, 110);
+      ctx.fillText(`Access to Safe Drinking Water: ${Math.min(100, 40 + budget * 0.6)}%`, 75, 140);
+      ctx.fillText(`Infant Mortality Rate (per 1k): ${deathRate.toFixed(1)} deaths`, 75, 170);
+    } else if (chapter === 9) {
+      // Ch 10: Landlords taxes
+      const tax = this.exploreState.landlordTax || 40;
+      const defaultRisk = Math.round(tax * 0.95);
+      const peasantRevolt = tax > 70 ? "EXTREME DANGER" : tax > 50 ? "HIGH RISK" : "STABLE";
+
+      ctx.fillStyle = boxBg;
+      ctx.fillRect(50, 40, w - 100, 160);
+      ctx.strokeStyle = primaryColor;
+      ctx.strokeRect(50, 40, w - 100, 160);
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText("Landlord Feudal Revenue Simulator", 70, 70);
+      ctx.font = "13px sans-serif";
+      ctx.fillText(`Land Rent Rate: ${tax}% of harvest`, 75, 110);
+      ctx.fillText(`Peasant Tax Default Risk: ${defaultRisk}%`, 75, 140);
+      ctx.fillText(`Peasant Rebellion Risk: ${peasantRevolt}`, 75, 170);
+    }
+
+    ctx.restore();
   }
 }
 
