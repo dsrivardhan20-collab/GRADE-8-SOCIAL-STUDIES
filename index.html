@@ -1,399 +1,617 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SRIVARDHAN - TS SCERT Class 8 Social Studies Chapter 1</title>
-  <meta name="description" content="Interactive Telangana SCERT Learning Platform - Class 8 Social Studies Chapter 1: Reading and Analysis of Maps.">
-  <link rel="stylesheet" href="style.css?v=1.4">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SRIVARDHAN - Deluxe Interactive Telangana SCERT Class 8 Social Studies Learning Platform. Chapters 1-10.">
+    <title>SRIVARDHAN | Interactive Telangana SCERT Learning Platform</title>
+    <!-- Google Fonts: Elegant and Deluxe Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@500;700;800&family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons for Visual Polish -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- App Stylesheet -->
+    <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dark-theme theme-landing">
 
-  <!-- Live Wallpaper Background -->
-  <canvas id="background-wallpaper"></canvas>
+    <!-- 1. MAGIC ENTRANCE PORTAL -->
+    <div id="magic-entrance">
+        <!-- Magic Spores Particle Backdrop -->
+        <canvas id="magic-canvas"></canvas>
+        
+        <div class="magic-card">
+            <div class="gold-double-border">
+                <div class="magic-branding">
+                    <h1 class="magic-title">SRIVARDHAN</h1>
+                    <p class="magic-tagline">Interactive Telangana SCERT Learning Platform</p>
+                </div>
+                
+                <!-- Mystical Guardian Creature (SVG Owl) -->
+                <div class="creature-container">
+                    <svg class="magic-owl" viewBox="0 0 100 100" width="120" height="120">
+                        <!-- Owl Body -->
+                        <ellipse cx="50" cy="55" rx="25" ry="30" fill="var(--royal-purple)" stroke="var(--gold-color)" stroke-width="2" />
+                        <!-- Belly patch -->
+                        <ellipse cx="50" cy="62" rx="15" ry="18" fill="var(--velvet-crimson)" opacity="0.3" />
+                        <!-- Eyes Outer -->
+                        <circle cx="38" cy="40" r="10" fill="var(--gold-color)" />
+                        <circle cx="62" cy="40" r="10" fill="var(--gold-color)" />
+                        <!-- Eyes Pupils -->
+                        <circle cx="38" cy="40" r="4" fill="#0d0628" />
+                        <circle cx="62" cy="40" r="4" fill="#0d0628" />
+                        <circle cx="40" cy="38" r="1.5" fill="white" />
+                        <circle cx="64" cy="38" r="1.5" fill="white" />
+                        <!-- Owl Beak -->
+                        <polygon points="50,47 46,55 54,55" fill="var(--copper-accent)" />
+                        <!-- Feathers details -->
+                        <path d="M42,60 Q50,65 58,60 M40,68 Q50,73 60,68" stroke="var(--gold-color)" stroke-width="1.5" fill="none" />
+                        <!-- Eyebrows / Mystical horns -->
+                        <path d="M30,28 Q38,32 46,35 M70,28 Q62,32 54,35" stroke="var(--gold-color)" stroke-width="2.5" fill="none" />
+                        <!-- Glowing Amulet -->
+                        <circle cx="50" cy="72" r="4" fill="var(--neon-cyan)" class="glowing-gem" />
+                    </svg>
+                </div>
 
-  <!-- Loading Screen -->
-  <div id="loading-screen">
-    <div class="loader-brand">SRIVARDHAN</div>
-    <div class="loader-tagline">Interactive Telangana SCERT Learning Platform</div>
-    <div class="loader-bar-outer">
-      <div class="loader-bar-inner"></div>
-    </div>
-  </div>
+                <!-- Dialogue box from the creature -->
+                <div class="creature-dialog">
+                    <p class="dialog-text">"Welcome, Seeker of Knowledge! I am the Cartography Guardian. Unfurl the scrolls of Telangana, change the chapters as you wish, and let us cast our spell to begin your quest..."</p>
+                </div>
 
-  <!-- Header Section -->
-  <header>
-    <div class="logo-container">
-      <h1 class="header-brand">SRIVARDHAN</h1>
-      <span class="header-tagline">Interactive Telangana SCERT Learning Platform</span>
-    </div>
-    <div class="header-controls" style="display: flex; align-items: center; gap: 1.2rem;">
-      <div id="header-progress" style="font-size: 0.85rem; font-weight: 700; color: var(--text-secondary);">
-        Topic: <span id="current-active-topic-num">1</span>/<span id="total-topics-num">5</span> Completed
-      </div>
-      <button id="theme-toggle-btn" class="theme-toggle-btn" onclick="app.toggleTheme()" aria-label="Toggle Light/Dark Theme">
-        <svg id="theme-icon-sun" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display: none;">
-          <circle cx="12" cy="12" r="5"></circle>
-          <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"></path>
-        </svg>
-        <svg id="theme-icon-moon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-        </svg>
-      </button>
-    </div>
-  </header>
-
-  <!-- Main Grid Layout -->
-  <div class="app-container">
-
-    <!-- Sidebar Navigation -->
-    <aside class="sidebar">
-      <div class="chapter-info">
-        <span class="chapter-meta">Class 8 • Social Studies</span>
-        <div class="chapter-selector-wrapper" style="margin-top: 0.5rem; width: 100%;">
-          <select id="chapter-select" class="chapter-select-dropdown" onchange="app.changeChapter(parseInt(this.value))">
-            <option value="0" selected>Ch 1: Reading & Analysis of Maps</option>
-            <option value="1">Ch 2: Energy from the Sun</option>
-            <option value="2">Ch 3: Earth Movements & Seasons</option>
-            <option value="3">Ch 4: The Polar Regions</option>
-            <option value="4">Ch 5: Forests: Using & Protecting</option>
-            <option value="5">Ch 6: Minerals & Mining</option>
-            <option value="6">Ch 7: Money & Banking</option>
-            <option value="7">Ch 8: Technology & Livelihoods</option>
-            <option value="8">Ch 9: Public Health & Government</option>
-            <option value="9">Ch 10: Landlords & Tenants</option>
-          </select>
+                <button id="btn-magic-enter" class="btn-luxury">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Cast Spell & Enter
+                </button>
+            </div>
         </div>
-      </div>
+    </div>
 
-      <nav>
-        <ul class="topic-list" id="topic-sidebar-menu">
-          <!-- Populated by JS -->
-        </ul>
-      </nav>
-
-      <div class="final-test-sidebar-card">
-        <button class="final-test-btn" id="sidebar-final-test-btn" onclick="app.showFinalTestIntro()">
-          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
-          Chapter Final Test
-        </button>
-      </div>
-    </aside>
-
-    <!-- Main Content Workspace -->
-    <main class="main-viewport" id="main-content-viewport">
-      
-      <!-- Topic Content Section (Toggled by active view state) -->
-      <section id="topic-section">
-        <div class="topic-header">
-          <span class="topic-subtitle" id="topic-meta-display">Topic 1</span>
-          <h2 class="topic-main-title" id="topic-title-display">Maps vs. Photographs</h2>
-        </div>
-
-        <!-- Learning Flow Step Tab Navigation -->
-        <div class="flow-tabs-nav">
-          <button class="flow-tab-btn active" id="tab-read" onclick="app.setFlowStep('read')">
-            Read
-          </button>
-          <button class="flow-tab-btn" id="tab-watch" onclick="app.setFlowStep('watch')">
-            Watch
-          </button>
-          <button class="flow-tab-btn" id="tab-explore" onclick="app.setFlowStep('explore')">
-            Explore
-          </button>
-          <button class="flow-tab-btn" id="tab-practice" onclick="app.setFlowStep('practice')">
-            Practice
-          </button>
-          <button class="flow-tab-btn" id="tab-revise" onclick="app.setFlowStep('revise')">
-            Revise
-          </button>
-        </div>
-
-        <!-- Flow Viewports -->
-        <div id="flow-content-area">
-
-          <!-- 1. READ VIEWPORT -->
-          <div class="flow-content-view active" id="view-read">
-            <div class="editorial-text" id="read-text-container">
-              <!-- Content loaded dynamically -->
+    <!-- 2. MAIN APP CONTENT CONTAINER (Initially Hidden) -->
+    <div class="app-container hide">
+        
+        <!-- SIDEBAR NAVIGATION -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2 class="brand-name">SRIVARDHAN</h2>
+                <span class="brand-tagline">Class 8 Social Studies</span>
             </div>
             
-            <div class="info-grid">
-              <div class="remember-box">
-                <div class="callout-title">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
-                  </svg>
-                  Remember Box
-                </div>
-                <div class="callout-body" id="remember-text">
-                  <!-- Loaded dynamically -->
-                </div>
-              </div>
+            <div class="sidebar-scrollable">
+                <nav class="navigation-menu">
+                    <!-- Dashboard Nav Button -->
+                    <button class="nav-item-btn active" id="btn-nav-dashboard">
+                        <i class="fa-solid fa-house"></i>
+                        <span>Dashboard Home</span>
+                    </button>
+                    
+                    <div class="menu-label">Active Chapter Topics</div>
+                    
+                    <!-- Chapter Topics List (Populated dynamically) -->
+                    <div class="accordion-container" id="chapters-accordion"></div>
 
-              <div class="fun-fact-box">
-                <div class="callout-title">
-                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                  </svg>
-                  Fun Fact
-                </div>
-                <div class="callout-body" id="fun-fact-text">
-                  <!-- Loaded dynamically -->
-                </div>
-              </div>
-            </div>
+                    <div class="menu-divider"></div>
 
-            <div class="real-life-example">
-              <div class="example-title">Real-Life Example</div>
-              <div class="example-body" id="real-life-text">
-                <!-- Loaded dynamically -->
-              </div>
-            </div>
-
-            <div class="vocabulary-section">
-              <h3 class="section-subtitle">Key Vocabulary</h3>
-              <div class="vocab-grid" id="vocab-container">
-                <!-- Loaded dynamically -->
-              </div>
-            </div>
-          </div>
-
-          <!-- 2. WATCH VIEWPORT -->
-          <div class="flow-content-view" id="view-watch">
-            <div class="watch-container">
-              <p class="editorial-text" style="text-align: center; max-width: 600px;">
-                Watch this educational simulation animation demonstrating the core geographical principle of this topic.
-              </p>
-              <div class="animation-viewport">
-                <canvas id="watch-canvas" width="720" height="400"></canvas>
-              </div>
-              <div class="watch-controls">
-                <button class="watch-btn" onclick="app.toggleWatchAnimation()">Play / Pause</button>
-                <button class="watch-btn" onclick="app.resetWatchAnimation()">Restart</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- 3. EXPLORE VIEWPORT -->
-          <div class="flow-content-view" id="view-explore">
-            <div class="explore-container">
-              <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h3 class="section-subtitle" style="margin:0;">Interactive Map Sandbox</h3>
-                <span id="explore-status-msg" style="font-size: 0.85rem; font-weight: 700; color: var(--accent-primary);"></span>
-              </div>
-              <p class="vocab-definition" id="explore-description">
-                Interact with the sandbox below to analyze geographic relations, survey fields, or contour heights in real-time.
-              </p>
-              <div class="sandbox-frame">
-                <div class="watermark">SRIVARDHAN</div>
-                <canvas id="explore-canvas" width="750" height="500" style="width:100%; height:100%; display:block;"></canvas>
-              </div>
-              <div class="sandbox-controls" id="sandbox-controls-container">
-                <!-- Loaded dynamically depending on active topic simulation -->
-              </div>
-            </div>
-          </div>
-
-          <!-- 4. PRACTICE VIEWPORT -->
-          <div class="flow-content-view" id="view-practice">
-            <div class="quiz-container" id="mini-quiz-card-container">
-              <!-- Mini Quiz cards will be injected by script.js -->
-            </div>
-          </div>
-
-          <!-- 5. REVISE VIEWPORT -->
-          <div class="flow-content-view" id="view-revise">
-            <div class="revise-grid">
-              
-              <!-- Vocabulary Flashcards -->
-              <div class="flashcards-container">
-                <h3 class="section-subtitle">Interactive Flashcards</h3>
-                <div class="flashcard-deck" id="vocab-flashcard" onclick="app.flipFlashcard()">
-                  <div class="flashcard-inner">
-                    <div class="flashcard-front">
-                      <span class="flashcard-label">Term</span>
-                      <h4 class="flashcard-word" id="flashcard-word-display">Cartography</h4>
-                      <p class="flashcard-tip">Click to reveal definition</p>
+                    <!-- Certification Test Nav Button -->
+                    <div class="special-nav">
+                        <button class="btn-sidebar-special" id="btn-nav-exam">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <span>Certification Test</span>
+                        </button>
                     </div>
-                    <div class="flashcard-back">
-                      <span class="flashcard-label">Definition</span>
-                      <p class="flashcard-def" id="flashcard-def-display">The science and practice of drawing maps.</p>
-                      <p class="flashcard-tip">Click to flip back</p>
+                </nav>
+            </div>
+
+            <!-- Sidebar Footer with branding watermark -->
+            <div class="sidebar-footer">
+                <div class="brand-watermark">SRIVARDHAN</div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT VIEWPORT -->
+        <main class="main-content">
+            
+            <!-- GLOBAL APP HEADER -->
+            <header class="app-header">
+                <!-- Left: Chapter Switcher Dropdown -->
+                <div class="header-left">
+                    <div class="chapter-vault-selector">
+                        <label for="chapter-select" class="dropdown-label"><i class="fa-solid fa-scroll"></i> Chapter Vault:</label>
+                        <select id="chapter-select" class="deluxe-dropdown">
+                            <!-- Populated dynamically via JS -->
+                        </select>
                     </div>
-                  </div>
                 </div>
-                <div class="flashcard-controls">
-                  <button class="flashcard-btn" onclick="app.prevFlashcard()">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
-                    </svg>
-                  </button>
-                  <span class="flashcard-indicator" id="flashcard-indicator-display">1 / 5</span>
-                  <button class="flashcard-btn" onclick="app.nextFlashcard()">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                  </button>
+                
+                <!-- Right: Header Actions (Branding & Theme Toggle) -->
+                <div class="header-right">
+                    <div class="branding-header">SRIVARDHAN</div>
+                    <div class="theme-toggle-box">
+                        <button id="theme-toggle-btn" class="btn-circle" title="Toggle Light/Dark Theme">
+                            <i class="fa-solid fa-moon"></i>
+                        </button>
+                    </div>
                 </div>
-              </div>
+            </header>
 
-              <!-- Topic 5-Point Summary -->
-              <div class="summary-card">
-                <h3 class="section-subtitle">Key Summary (5 Points)</h3>
-                <ul class="summary-list" id="summary-points-container">
-                  <!-- Injected by script.js -->
-                </ul>
-              </div>
-
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Next Step CTA Banner -->
-        <div class="next-step-banner">
-          <div class="next-step-info">
-            <span class="next-step-label">Next Step</span>
-            <span class="next-step-title" id="next-step-title-display">Watch Topic Video</span>
-          </div>
-          <button class="next-step-btn" id="next-step-action-btn" onclick="app.advanceFlowStep()">
-            Proceed
-          </button>
-        </div>
-      </section>
-
-      <!-- Final Test Section (Hidden by default) -->
-      <section id="final-test-section" style="display:none;">
-        <div class="final-test-container">
-          
-          <!-- Test Intro -->
-          <div id="test-intro-panel">
-            <div class="final-test-intro">
-              <h2>Chapter Final Certification Exam</h2>
-              <p>
-                This test contains exactly 20 mixed multiple-choice questions covering all five topics of "Reading and Analysis of Maps". Complete it to earn a printable achievement certificate under the **SRIVARDHAN** brand.
-              </p>
-              <div class="real-life-example" style="margin-bottom: 2rem; max-width: 500px; margin-left: auto; margin-right: auto; text-align: left;">
-                <div class="example-title">Rules</div>
-                <ul style="font-size: 0.9rem; color: var(--text-secondary); margin-left: 1.2rem;">
-                  <li>20 MCQs from the SCERT syllabus.</li>
-                  <li>Instant feedback is NOT shown during the test.</li>
-                  <li>Get 80% or above (16/20 correct) to earn your certificate.</li>
-                </ul>
-              </div>
-              <button class="primary-btn" onclick="app.startFinalTest()">Start Final Exam</button>
-            </div>
-          </div>
-
-          <!-- Test Questions Sheet -->
-          <div id="test-questions-panel" style="display:none;">
-            <div class="topic-header" style="display:flex; justify-content:space-between; align-items:center;">
-              <div>
-                <span class="topic-subtitle">Telangana SCERT Class 8</span>
-                <h2 class="topic-main-title">Final Exam Sheet</h2>
-              </div>
-              <div id="test-timer" style="font-weight:700; color:var(--accent-primary); font-size:1.1rem; border:1px solid var(--border-color); padding:0.4rem 0.8rem; border-radius:8px; background:#fff;">
-                Time Elapsed: 00:00
-              </div>
-            </div>
-            <div class="test-grid" id="test-questions-container">
-              <!-- Injected by script.js -->
-            </div>
-            <div class="test-submit-row">
-              <button class="primary-btn" style="background-color: var(--accent-primary);" onclick="app.submitFinalTest()">Submit Exam Sheet</button>
-            </div>
-          </div>
-
-          <!-- Test Results Screen -->
-          <div id="test-results-panel" style="display:none;">
-            <div class="results-card">
-              <span class="percentage-badge" id="results-percentage">Score: 90%</span>
-              <div class="score-circle">
-                <span class="score-num" id="results-score">18/20</span>
-                <span class="score-label">Correct</span>
-              </div>
-              <h3 class="result-verdict" id="results-verdict">Outstanding Achievement!</h3>
-              <p class="result-summary-text" id="results-summary-text">
-                Excellent work! You have successfully mastered Chapter 1: "Reading and Analysis of Maps".
-              </p>
-
-              <!-- Certificate Form (Unlocked if score >= 80%) -->
-              <div class="cert-unlock-box" id="cert-unlock-container" style="display:none;">
-                <h4 style="margin-bottom: 0.5rem; font-family: var(--font-serif); font-size: 1.3rem;">Download Certificate</h4>
-                <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                  Enter your name below to generate and print your official certificate of completion.
-                </p>
-                <div class="cert-input-group">
-                  <label for="student-name-input">Student Full Name</label>
-                  <input type="text" id="student-name-input" placeholder="e.g. Srivardhan Goud" value="">
+            <!-- BREADCRUMBS BAR -->
+            <div class="breadcrumbs-container">
+                <div class="header-breadcrumb">
+                    <span id="breadcrumb-chapter">Chapter 1: Reading and Analysis of Maps</span>
+                    <i class="fa-solid fa-chevron-right separator"></i>
+                    <span class="active" id="breadcrumb-topic">Dashboard Overview</span>
                 </div>
-                <button class="primary-btn" onclick="app.generateAndPrintCertificate()">Print Certificate</button>
-              </div>
-
-              <!-- Retake button if failed/retry -->
-              <button class="watch-btn" onclick="app.resetFinalTest()" style="margin-top: 1rem;">Retake Final Exam</button>
-              
-              <!-- Review Answers Area -->
-              <h3 class="review-section-title">Review Question Explanations</h3>
-              <div id="test-review-container">
-                <!-- Injected by script.js -->
-              </div>
             </div>
-          </div>
 
-        </div>
-      </section>
+            <!-- VIEWPORT 1: WELCOME DASHBOARD -->
+            <div class="content-container active" id="container-dashboard">
+                <div class="welcome-hero">
+                    <div class="hero-overlay"></div>
+                    <div class="hero-content">
+                        <span class="badge-hero">Class 8 Social Studies</span>
+                        <h1 id="dash-chapter-title">Chapter 1: Reading & Analysis of Maps</h1>
+                        <p class="hero-desc" id="dash-chapter-desc">Master map evolution, projections, coordinate grids, thematic contours, and modern GIS in an interactive learning portal.</p>
+                        <button class="btn-primary-large" id="btn-start-learning">
+                            <span>Begin Chapter Quest</span> <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
 
-    </main>
+                <div class="stats-overview-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon circle-teal"><i class="fa-solid fa-book"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-topics-count">4 Topics</h3>
+                            <p>Syllabus Areas</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon circle-emerald"><i class="fa-solid fa-flask"></i></div>
+                        <div class="stat-info">
+                            <h3>1 Simulator</h3>
+                            <p>Interactive Exploration</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon circle-sky"><i class="fa-solid fa-circle-question"></i></div>
+                        <div class="stat-info">
+                            <h3 id="stat-questions-count">20 Questions</h3>
+                            <p>Quiz & Practice Questions</p>
+                        </div>
+                    </div>
+                </div>
 
-  </div>
+                <div class="dashboard-chapters-list">
+                    <h2>Chapter Learning Roadmap</h2>
+                    <div class="chapters-grid" id="dashboard-chapters-grid">
+                        <!-- Populated dynamically by JS -->
+                    </div>
+                </div>
+            </div>
 
-  <!-- Certificate Canvas template for printing (Hidden from screen view) -->
-  <div id="certificate-container">
-    <div class="cert-border-inset">
-      <div class="cert-watermark">SRIVARDHAN</div>
-      
-      <div class="cert-header">
-        <div class="cert-brand">SRIVARDHAN</div>
-        <div class="cert-tagline">Interactive Telangana SCERT Learning Platform</div>
-      </div>
+            <!-- VIEWPORT 2: STUDY DESK WORKSPACE -->
+            <div class="content-container" id="container-study-desk">
+                <!-- Desk Watermark Backdrop -->
+                <div class="desk-watermark">SRIVARDHAN</div>
 
-      <div class="cert-body" style="text-align: center; width: 100%;">
-        <div class="cert-presents">Certificate of Achievement</div>
-        <div class="cert-title">Honours Certification</div>
-        <div style="font-family: var(--font-sans); font-size: 0.9rem; text-transform: uppercase; color: var(--text-secondary); margin-top: 10px;">Awarded to</div>
-        <div class="cert-recipient" id="cert-recipient-name">STUDENT NAME</div>
-        <div class="cert-details">
-          For demonstrating exceptional academic knowledge in Telangana SCERT Class 8 Social Studies <strong id="cert-chapter-name">Chapter 1: "Reading and Analysis of Maps"</strong>, securing a score of <strong id="cert-score-display">20 / 20</strong> (<strong id="cert-percent-display">100%</strong>) on the comprehensive final exam.
-        </div>
-      </div>
+                <!-- Learning Flow Tabs Bar -->
+                <div class="desk-tabs-bar">
+                    <button class="tab-btn active" data-tab="read">
+                        <i class="fa-solid fa-book-open"></i>
+                        <span>1. Read</span>
+                    </button>
+                    <button class="tab-btn" data-tab="watch">
+                        <i class="fa-solid fa-circle-play"></i>
+                        <span>2. Watch</span>
+                    </button>
+                    <button class="tab-btn" data-tab="explore">
+                        <i class="fa-solid fa-compass-drafting"></i>
+                        <span>3. Explore</span>
+                    </button>
+                    <button class="tab-btn" data-tab="practice">
+                        <i class="fa-solid fa-feather-pointed"></i>
+                        <span>4. Practice</span>
+                    </button>
+                    <button class="tab-btn" data-tab="revise">
+                        <i class="fa-solid fa-rotate-left"></i>
+                        <span>5. Revise</span>
+                    </button>
+                </div>
 
-      <div class="cert-footer">
-        <div class="cert-signature-block">
-          <span style="font-family: var(--font-sans); font-size: 0.8rem; color: var(--text-secondary);" id="cert-date-display">Date: 2026-08-14</span>
-          <span class="cert-sig-label">Date Completed</span>
-        </div>
-        <div class="cert-signature-block">
-          <div class="cert-signature">SRIVARDHAN</div>
-          <span class="cert-sig-label">Authorized Platform Signature</span>
-        </div>
-      </div>
+                <!-- DESK SUBPANELS AREA -->
+                <div class="desk-viewport">
+                    
+                    <!-- TAB 1: READ PANEL -->
+                    <div class="tab-panel active" id="panel-read">
+                        <div class="tab-scroll-box">
+                            <div class="study-article">
+                                <div id="read-explanation">
+                                    <!-- Populated dynamically -->
+                                </div>
+                                
+                                <div class="remember-box" id="read-remember">
+                                    <!-- Populated dynamically -->
+                                </div>
+
+                                <div class="vocabulary-section">
+                                    <h3><i class="fa-solid fa-spell-check"></i> Vocabulary & Concepts</h3>
+                                    <div class="table-responsive">
+                                        <table class="vocab-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Term</th>
+                                                    <th>Difficult-Word Meaning</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="read-vocab-list">
+                                                <!-- Populated dynamically -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 2: WATCH PANEL -->
+                    <div class="tab-panel" id="panel-watch">
+                        <div class="media-workspace">
+                            <div class="media-canvas-box" id="watch-media-canvas">
+                                <!-- Dynamic HTML5 Canvas or Youtube player inside -->
+                            </div>
+                            <div class="watch-controls">
+                                <div class="media-toggle-tabs" id="watch-media-toggle">
+                                    <button class="media-toggle-btn active" id="btn-toggle-animation">
+                                        <i class="fa-solid fa-network-wired"></i> HTML/CSS Animation
+                                    </button>
+                                    <button class="media-toggle-btn" id="btn-toggle-video">
+                                        <i class="fa-brands fa-youtube"></i> Educational Video
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="media-description" id="watch-media-description">
+                                <!-- Summary of visual -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 3: EXPLORE PANEL -->
+                    <div class="tab-panel" id="panel-explore">
+                        <div class="simulation-workspace">
+                            <div class="sim-header">
+                                <h3><i class="fa-solid fa-cubes"></i> Interactive Cartographic Simulator</h3>
+                                <button class="btn-secondary-small" id="reset-simulation-btn">
+                                    <i class="fa-solid fa-arrows-rotate"></i> Reset
+                                </button>
+                            </div>
+                            <!-- Simulation Container -->
+                            <div class="sim-container" id="explore-simulation-container">
+                                <!-- Canvas Simulator loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- TAB 4: PRACTICE PANEL -->
+                    <div class="tab-panel" id="panel-practice">
+                        <div class="practice-workspace">
+                            <div class="practice-nav-header">
+                                <button class="practice-toggle-btn active" id="btn-toggle-quiz">
+                                    <i class="fa-solid fa-clipboard-question"></i> Mini Quiz
+                                </button>
+                                <button class="practice-toggle-btn" id="btn-toggle-flashcards">
+                                    <i class="fa-solid fa-copy"></i> Study Flashcards
+                                </button>
+                            </div>
+
+                            <!-- MINI QUIZ WRAPPER -->
+                            <div class="practice-content-box" id="practice-quiz-section">
+                                <div class="quiz-card-container">
+                                    <div class="quiz-header">
+                                        <span class="quiz-q-indicator" id="quiz-q-num">Question 1 of 5</span>
+                                        <div class="quiz-timer" id="quiz-timer-box">
+                                            <i class="fa-regular fa-clock"></i> <span id="quiz-time-elapsed">0:00</span>
+                                        </div>
+                                    </div>
+                                    <h3 class="quiz-question" id="quiz-question-text">Question loading...</h3>
+                                    
+                                    <div class="quiz-options" id="quiz-options-list">
+                                        <!-- Loaded dynamically -->
+                                    </div>
+
+                                    <!-- Quiz feedback and explanation box -->
+                                    <div class="explanation-card hide" id="quiz-explanation-box">
+                                        <div class="explanation-status" id="quiz-exp-status">Correct!</div>
+                                        <p class="explanation-text" id="quiz-explanation-text">Explanation goes here.</p>
+                                    </div>
+                                </div>
+
+                                <!-- Quiz Completed Scorecard -->
+                                <div class="quiz-complete-card hide" id="quiz-complete-card">
+                                    <div class="score-burst">🏆</div>
+                                    <h2>Practice Quiz Completed!</h2>
+                                    <div class="score-dashboard">
+                                        <div class="score-block">
+                                            <span class="label">Score</span>
+                                            <span class="val" id="quiz-score-val">0/5</span>
+                                        </div>
+                                        <div class="score-block">
+                                            <span class="label">Accuracy</span>
+                                            <span class="val" id="quiz-percent-val">0%</span>
+                                        </div>
+                                    </div>
+                                    <button class="btn-primary-large" id="quiz-retry-btn">
+                                        <i class="fa-solid fa-rotate-left"></i> Retake Practice Quiz
+                                    </button>
+                                </div>
+
+                                <div class="quiz-controls">
+                                    <button class="btn-secondary" id="quiz-prev-btn" disabled><i class="fa-solid fa-arrow-left"></i> Back</button>
+                                    <button class="btn-primary" id="quiz-next-btn" disabled>Next Question <i class="fa-solid fa-arrow-right"></i></button>
+                                </div>
+
+                                <!-- Progress indicators -->
+                                <div class="quiz-progress-steps" id="quiz-question-steps">
+                                    <!-- Dots loaded dynamically -->
+                                </div>
+                            </div>
+
+                            <!-- STUDY FLASHCARDS WRAPPER -->
+                            <div class="practice-content-box hide" id="practice-flashcard-section">
+                                <p class="flashcard-instruction"><i class="fa-solid fa-circle-info"></i> Click the card to flip it and reveal the SCERT explanation.</p>
+                                <div class="flashcard-container">
+                                    <div class="flashcard" id="flashcard-element">
+                                        <!-- Front face -->
+                                        <div class="flashcard-face flashcard-front">
+                                            <div class="card-brand">SRIVARDHAN</div>
+                                            <p class="card-text" id="flashcard-front-text">Concept Question</p>
+                                            <span class="flip-hint"><i class="fa-solid fa-arrow-rotate-left"></i> Flip Card</span>
+                                        </div>
+                                        <!-- Back face -->
+                                        <div class="flashcard-face flashcard-back">
+                                            <div class="card-brand">SRIVARDHAN</div>
+                                            <p class="card-text" id="flashcard-back-text">Concept Answer</p>
+                                            <span class="flip-hint"><i class="fa-solid fa-arrow-rotate-left"></i> Flip Card</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="flashcard-controls">
+                                    <button class="btn-secondary" id="fc-prev-btn"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+                                    <span class="fc-counter" id="fc-counter-text">1 / 5</span>
+                                    <button class="btn-secondary" id="fc-next-btn">Next <i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- TAB 5: REVISE PANEL -->
+                    <div class="tab-panel" id="panel-revise">
+                        <div class="tab-scroll-box">
+                            <div class="revision-workspace">
+                                <div class="revision-summary-card">
+                                    <h3><i class="fa-solid fa-list-check"></i> Chapter Summary (5 Key Points)</h3>
+                                    <ul class="summary-list" id="revise-summary-list">
+                                        <!-- Loaded dynamically -->
+                                    </ul>
+                                </div>
+
+                                <div class="revision-grid">
+                                    <div class="revision-card secondary-border">
+                                        <h4><i class="fa-solid fa-circle-question"></i> Real-Life Connection</h4>
+                                        <div id="revise-real-life">
+                                            <!-- Loaded dynamically -->
+                                        </div>
+                                    </div>
+                                    <div class="revision-card accent-border">
+                                        <h4><i class="fa-solid fa-lightbulb"></i> Fun Fact Corner</h4>
+                                        <div id="revise-fun-fact">
+                                            <!-- Loaded dynamically -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- DESK NAVIGATION BAR FOOTER -->
+                <footer class="desk-footer">
+                    <div class="desk-footer-left">
+                        <button class="btn-secondary" id="desk-prev-topic-btn">
+                            <i class="fa-solid fa-circle-chevron-left"></i> Previous Section
+                        </button>
+                    </div>
+                    <div class="desk-footer-center">
+                        <span id="desk-footer-indicator">Topic 1 of 4</span>
+                        <!-- Circle Progress -->
+                        <div class="progress-container">
+                            <svg class="progress-ring" width="36" height="36">
+                                <circle class="progress-ring-circle-bg" stroke="var(--border-color)" stroke-width="3" fill="transparent" r="14" cx="18" cy="18"/>
+                                <circle class="progress-ring-circle" id="desk-progress-bar" stroke="var(--accent-color)" stroke-width="3" fill="transparent" r="14" cx="18" cy="18" stroke-dasharray="87.96" stroke-dashoffset="87.96"/>
+                            </svg>
+                            <span class="progress-percentage" id="desk-progress-percent">0%</span>
+                        </div>
+                    </div>
+                    <div class="desk-footer-right">
+                        <button class="btn-primary" id="desk-next-topic-btn">
+                            Next Section <i class="fa-solid fa-circle-chevron-right"></i>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+
+            <!-- VIEWPORT 3: CERTIFICATION EXAMINATION ZONE -->
+            <div class="content-container" id="container-exam">
+                <div class="exam-workspace-card">
+                    <!-- Entrance Settings Stage -->
+                    <div class="exam-setup-box">
+                        <h2>🏆 Class 8 Social Studies Certification</h2>
+                        <p class="exam-lead-text">Take the comprehensive 20-question certification exam to prove your academic excellence. Scores of 80% or above earn a printable certificate branded under the **SRIVARDHAN** seal of excellence.</p>
+                        
+                        <div class="exam-form-group">
+                            <label for="input-student-name">Enter Candidate Full Name (for Certificate):</label>
+                            <input type="text" id="input-student-name" placeholder="E.g. Srivardhan Prasad" class="deluxe-input">
+                            <p class="input-error-msg hide" id="name-error-msg"><i class="fa-solid fa-triangle-exclamation"></i> Candidate name is required to start the exam.</p>
+                        </div>
+
+                        <div class="exam-settings-meta">
+                            <h4>Exam Configuration:</h4>
+                            <ul>
+                                <li><i class="fa-solid fa-clock"></i> Duration: 20 Minutes</li>
+                                <li><i class="fa-solid fa-clipboard-list"></i> Total Questions: 20 Multiple-Choice</li>
+                                <li><i class="fa-solid fa-award"></i> Passing Grade: 80% (16/20 Correct Answers)</li>
+                                <li><i class="fa-solid fa-infinity"></i> Attempts Allowed: Unlimited</li>
+                            </ul>
+                        </div>
+
+                        <div class="exam-chapter-info">
+                            <h4>Chapters Included in this Session:</h4>
+                            <div class="exam-chapters-radio-list" id="exam-chapter-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+
+                        <button class="btn-luxury-large" id="btn-launch-exam">
+                            <i class="fa-solid fa-graduation-cap"></i> Launch Examination Session
+                        </button>
+                    </div>
+
+                    <!-- Active Exam Stage -->
+                    <div class="exam-stage-panel hide" id="exam-stage-panel">
+                        <header class="exam-stage-header">
+                            <div class="header-left">
+                                <h3 id="exam-active-chapter-title">Chapter Certification Exam</h3>
+                                <p class="candidate-tag">Candidate: <strong id="exam-candidate-name">Student Name</strong></p>
+                            </div>
+                            <div class="exam-timer-badge">
+                                <i class="fa-regular fa-clock"></i> Time Left: <span id="exam-timer-val">20:00</span>
+                            </div>
+                        </header>
+                        
+                        <div class="exam-progress-track">
+                            <div class="exam-progress-fill" id="exam-progress-fill" style="width: 5%"></div>
+                        </div>
+
+                        <div class="exam-q-box">
+                            <span class="exam-q-number" id="exam-q-counter">Question 1 of 20</span>
+                            <h2 class="exam-question-text" id="exam-question-text">Question placeholder text?</h2>
+                            
+                            <div class="exam-options-grid" id="exam-options-grid">
+                                <!-- Dynamically loaded option buttons -->
+                            </div>
+                        </div>
+
+                        <div class="exam-action-navigation">
+                            <button class="btn-secondary" id="exam-prev-btn" disabled><i class="fa-solid fa-arrow-left"></i> Previous Question</button>
+                            <button class="btn-primary" id="exam-next-btn">Next Question <i class="fa-solid fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+
+                    <!-- Post-Exam Results Stage -->
+                    <div class="exam-results-panel hide" id="exam-results-panel">
+                        <div class="results-header">
+                            <span class="results-medal" id="results-medal-icon">🏆</span>
+                            <h2 id="results-heading">Congratulations! You Passed!</h2>
+                            <p class="results-desc">Certification scorecard has been generated and validated under Srivardhan Licensing Authority.</p>
+                        </div>
+
+                        <div class="results-metrics-dashboard">
+                            <div class="metric-card">
+                                <span class="label">Total Score</span>
+                                <span class="val" id="results-score-text">18 / 20</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="label">Percentage</span>
+                                <span class="val" id="results-percent-text">90%</span>
+                            </div>
+                            <div class="metric-card">
+                                <span class="label">Status</span>
+                                <span class="val status-pass" id="results-status-text">PASSED</span>
+                            </div>
+                        </div>
+
+                        <div class="results-actions-panel">
+                            <button class="btn-luxury-large hide" id="btn-generate-certificate">
+                                <i class="fa-solid fa-award"></i> Generate Print Certificate
+                            </button>
+                            <button class="btn-secondary" id="btn-exam-reset">
+                                <i class="fa-solid fa-rotate-left"></i> Restart Exam Settings
+                            </button>
+                        </div>
+
+                        <div class="results-detailed-review">
+                            <h3><i class="fa-solid fa-magnifying-glass"></i> Examination Question Review</h3>
+                            <div class="review-items-list" id="exam-review-list">
+                                <!-- Load review cards dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </main>
     </div>
-  </div>
 
-  <!-- Footer Section -->
-  <footer>
-    <div class="footer-brand">SRIVARDHAN</div>
-    <p>Interactive Telangana SCERT Learning Platform</p>
-    <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.7;">
-      © 2026 SRIVARDHAN. Content sourced from Telangana State Council of Educational Research & Training (SCERT) Class 8 Social Studies Syllabus.
-    </p>
-  </footer>
+    <!-- 3. PRINTABLE CERTIFICATE MODAL (Hidden by Default) -->
+    <div id="certificate-modal" class="modal-overlay hide">
+        <div class="certificate-modal-card">
+            <!-- Modal Controls -->
+            <div class="modal-controls no-print">
+                <button class="btn-luxury" id="btn-print-action">
+                    <i class="fa-solid fa-print"></i> Print Certificate
+                </button>
+                <button class="btn-circle" id="btn-close-cert-modal">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <!-- The Certificate (Optimized for A4 landscape printing) -->
+            <div class="certificate-container" id="certificate-print-view">
+                <!-- Background Watermarks -->
+                <div class="cert-watermark cert-watermark-left">SRIVARDHAN</div>
+                <div class="cert-watermark cert-watermark-right">SRIVARDHAN</div>
+                <div class="cert-border-outer">
+                    <div class="cert-border-inner">
+                        <div class="cert-header">
+                            <div class="cert-crest">SRIVARDHAN</div>
+                            <h1 class="cert-main-title">Certificate of Academic Excellence</h1>
+                            <p class="cert-tagline">Interactive Telangana SCERT Learning Platform</p>
+                        </div>
+                        
+                        <div class="cert-body">
+                            <p class="cert-declare">This is to officially certify that</p>
+                            <h2 class="cert-recipient-name" id="cert-display-name">Candidate Name</h2>
+                            <p class="cert-achievement">has successfully demonstrated mastery and academic excellence in the study of</p>
+                            <h3 class="cert-subject" id="cert-display-chapter">Class 8 Social Studies Chapter 1: Reading and Analysis of Maps</h3>
+                            <p class="cert-details">by passing the comprehensive assessment examinations at the level of</p>
+                            <h4 class="cert-grade" id="cert-display-grade">Grade A (Excellent) with 95%</h4>
+                        </div>
+                        
+                        <div class="cert-footer">
+                            <div class="cert-signature-block">
+                                <div class="cert-sig-line">SRIVARDHAN</div>
+                                <span class="cert-label">Governing Board Authority</span>
+                            </div>
+                            <div class="cert-seal">
+                                <div class="cert-seal-star">★</div>
+                                <span class="cert-seal-text">OFFICIAL SEAL</span>
+                            </div>
+                            <div class="cert-date-block">
+                                <span class="cert-date-val" id="cert-display-date">18th August 2026</span>
+                                <span class="cert-label">Verification Date</span>
+                            </div>
+                        </div>
+                        
+                        <div class="cert-license">
+                            Verification Unique UID: <span id="cert-display-uid">SRIV-CH1-5832-8419</span>
+                        </div>
+            </div>
+        </div>
+    </div>
 
-  <script src="syllabus.js"></script>
-  <script src="script.js?v=1.4"></script>
+    <!-- Script Import -->
+    <script src="script.js"></script>
 </body>
 </html>

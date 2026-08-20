@@ -1,3487 +1,2666 @@
-// script.js - Srivardhan Telangana SCERT Class 8 Chapter 1-10 Interactive Learning Engine
+/* ==========================================================================
+   JAVASCRIPT CORE ENGINE: Srivardhan Chapters 1-10 Learning Platform
+   ========================================================================== */
 
-// --- DYNAMIC DATABASE MAPPING ---
-let topicsData = [];
-let finalTestQuestions = [];
+// Global App State
+let activeChapterIdx = 0; // 0 to 9
+let activeTopicIdx = 0;   // Always 0 (1 main topic per chapter)
+let activeTab = "read";
+let watchSubMode = "animation"; 
+let watchAnimationId = null;
+let activeExploreAnimationId = null;
 
-// --- APP STATE ENGINE ---
-class LearningApp {
-  constructor() {
-    this.activeChapter = 0;
-    this.activeTopic = 0;
-    this.flowStep = "read";
-    this.theme = "light";
-    
-    // Animations & Canvas contexts
-    this.watchCanvas = null;
-    this.watchCtx = null;
-    this.watchAnimId = null;
-    this.watchPlaying = false;
-    this.watchFrame = 0;
+let quizTimerInterval = null;
+let examTimerInterval = null;
+let currentQuizQuestionIdx = 0;
+let quizAnswers = Array(5).fill(null);
+let quizSecondsElapsed = 0;
 
-    this.exploreCanvas = null;
-    this.exploreCtx = null;
-    this.exploreState = {};
-    
-    // Flashcards status
-    this.flashcardIndex = 0;
-    this.flashcardFlipped = false;
+let currentExamQIdx = 0;
+let examAnswers = [];
+let examSecondsRemaining = 1200; // 20 minutes
+let examQuestionsList = [];
 
-    // Mini Quiz status
-    this.activeMiniQuizQ = 0;
-    this.miniQuizAnswers = [];
-    
-    // Final test status
-    this.testActive = false;
-    this.testAnswers = Array(20).fill(null);
-    this.testTime = 0;
-    this.testTimerId = null;
+// User Progress Structure
+let userProgress = {
+    studentName: "",
+    completedChapters: {}, // maps "chapIdx" -> boolean
+    examHighScores: {}     // maps "exam" -> score
+};
 
-    // Init App
-    window.addEventListener("DOMContentLoaded", () => this.init());
-  }
-
-  init() {
-    // Hide loader
-    setTimeout(() => {
-      const loader = document.getElementById("loading-screen");
-      if (loader) {
-        loader.style.opacity = 0;
-        setTimeout(() => loader.style.display = "none", 500);
-      }
-    }, 1000);
-
-    // Setup theme
-    this.theme = localStorage.getItem("theme") || "light";
-    this.applyTheme();
-
-    // Setup DOM elements
-    this.watchCanvas = document.getElementById("watch-canvas");
-    if (this.watchCanvas) this.watchCtx = this.watchCanvas.getContext("2d");
-
-    this.exploreCanvas = document.getElementById("explore-canvas");
-    if (this.exploreCanvas) {
-      this.exploreCtx = this.exploreCanvas.getContext("2d");
-      this.setupExploreListeners();
+// Load progress from localStorage
+function loadProgress() {
+    const saved = localStorage.getItem("srivardhan_scert_multichap_progress");
+    if (saved) {
+        try {
+            userProgress = JSON.parse(saved);
+        } catch(e) {
+            console.error("Progress parsing failed", e);
+        }
     }
+}
 
-    // Set default chapter (this triggers renderSidebar and loadTopic)
-    this.changeChapter(this.activeChapter);
+function saveProgress() {
+    localStorage.setItem("srivardhan_scert_multichap_progress", JSON.stringify(userProgress));
+}
 
-    // Start background live wallpaper
-    this.initBackgroundWallpaper();
-  }
-
-  changeChapter(chapterIndex) {
-    this.activeChapter = chapterIndex;
-    topicsData = syllabusData[chapterIndex].topics;
-    finalTestQuestions = syllabusData[chapterIndex].finalTest;
-
-    const totalTopicsEl = document.getElementById("total-topics-num");
-    if (totalTopicsEl) totalTopicsEl.innerText = topicsData.length;
-
-    const selector = document.getElementById("chapter-select");
-    if (selector) selector.value = chapterIndex;
-
-    this.renderSidebar();
-    this.loadTopic(0);
-  }
-
-  toggleTheme() {
-    this.theme = this.theme === "light" ? "dark" : "light";
-    localStorage.setItem("theme", this.theme);
-    this.applyTheme();
-  }
-
-  applyTheme() {
-    const htmlEl = document.documentElement;
-    const sunIcon = document.getElementById("theme-icon-sun");
-    const moonIcon = document.getElementById("theme-icon-moon");
-
-    if (this.theme === "dark") {
-      htmlEl.classList.add("dark-theme");
-      if (sunIcon) sunIcon.style.display = "block";
-      if (moonIcon) moonIcon.style.display = "none";
-    } else {
-      htmlEl.classList.remove("dark-theme");
-      if (sunIcon) sunIcon.style.display = "none";
-      if (moonIcon) moonIcon.style.display = "block";
+// Utility: Shuffle array in place
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
     }
-  }
+    return array;
+}
 
-  initBackgroundWallpaper() {
-    const bgCanvas = document.getElementById("background-wallpaper");
-    if (!bgCanvas) return;
-    const bgCtx = bgCanvas.getContext("2d");
-    let t = 0;
+/* ==========================================================================
+   THEMATIC DATABASE: Chapters 1 to 10 Syllabus
+   ========================================================================== */
+const syllabusData = [
+    {
+        chapterNum: 1,
+        title: "Reading and Analysis of Maps",
+        summary: "Introduction to historical cartography, coordinate systems, contours, and GIS.",
+        description: "Master maps through the ages, coordinate grids, contour heights, and satellite GIS overlays.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Evolution of Maps and Contour Lines",
+                youtubeId: "32Y2V23t6V0", 
+                explanation: `
+                    <h3>1. Ancient Beginnings & Sumerian Clay Tablets</h3>
+                    <p>The story of mapmaking begins thousands of years ago with the oldest known maps <span class="underlined-concept">engraved on Sumerian clay tablets</span> around 4,000 years ago. These early cartographers created drawings to record <span class="keyword-tooltip" data-tooltip="Temple estates and land holdings that were surveyed and mapped for taxation.">temple land ownership</span>. These tablets were baked hard in the sun to preserve local agricultural borders.</p>
 
-    // Generate starry cosmos/floating coordinate dots data once
-    const stars = [];
-    for (let i = 0; i < 110; i++) {
-      stars.push({
-        x: Math.random(),
-        y: Math.random(),
-        size: 0.4 + Math.random() * 1.5,
-        twinkleSpeed: 0.005 + Math.random() * 0.012,
-        alpha: Math.random()
-      });
+                    <h3>2. Greek Coordinate Grids & Ptolemy</h3>
+                    <p>The ancient <strong>Greeks</strong>, particularly geographers like Anaximander and Hecataeus, laid the mathematical foundation of geography by dividing the known world into three continents: Europe, Asia, and Libya. The famous Greco-Egyptian mathematician <strong>Ptolemy</strong> introduced the system of <span class="underlined-concept">latitudes and longitudes</span>, allowing cartographers to locate points on a coordinate grid.</p>
+
+                    <h3>3. Medieval Map Orientations</h3>
+                    <p>During the Middle Ages, map orientations varied based on cultural perspectives. The medieval Arab scholar <strong>Al-Idrisi</strong> drew a detailed world map in 1154 AD that placed <span class="underlined-concept">South at the top of the map</span>. In contrast, European medieval cartographers drew <strong>T-O maps</strong> that placed <span class="underlined-concept">East (and Jerusalem) at the top</span>, associating the East with the Garden of Eden.</p>
+
+                    <h3>4. Elevation and Contour Lines</h3>
+                    <p>To represent three-dimensional elevations on flat paper, geographers developed <strong>contour lines</strong>. A contour line is an <span class="keyword-tooltip" data-tooltip="An isoline is a map line connecting points that share the exact same measured value, like height or heat.">isoline</span> that connects all locations on a map that share the exact same height above sea level. When contour lines are drawn close together, it indicates a steep slope. When they are spaced far apart, it represents a gentle slope.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>engraved on Sumerian clay tablets</strong>: Wet clay blocks were carved with sharp reeds to record land boundaries, then sun-baked to make permanent, unalterable tax records.</li>
+                            <li><strong>latitudes and longitudes</strong>: Imaginary horizontal and vertical coordinate lines that intersect to pinpoint locations anywhere on Earth's sphere.</li>
+                            <li><strong>South at the top of the map</strong>: Islamic cartographers placed South at the top so the Arabian Peninsula and Mecca would be positioned towards the upper half of the map.</li>
+                            <li><strong>East (and Jerusalem) at the top</strong>: Christian mapmakers oriented T-O maps with East on top because they believed the Garden of Eden lay in the East.</li>
+                        </ul>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h4><i class="fa-solid fa-code-compare"></i> Map Orientations: Al-Idrisi vs. European T-O Maps</h4>
+                        <div class="table-responsive">
+                            <table class="comp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Al-Idrisi Map (1154 AD)</th>
+                                        <th>European T-O Maps (Medieval)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Top Direction</strong></td>
+                                        <td>South is placed at the top.</td>
+                                        <td>East is placed at the top.</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Centerpoint</strong></td>
+                                        <td>Arabian Peninsula.</td>
+                                        <td>Jerusalem (religious center).</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: Steep vs. Gentle Slopes</div>
+                        <div class="vs-content">
+                            A <span class="vs-highlight">Steep Slope</span> is represented by tightly packed contour lines because elevation rises rapidly over a short distance, whereas a <span class="vs-highlight">Gentle Slope</span> is shown by widely spaced contour lines.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 2: Understanding</span></div>
+                            <div class="blooms-q-text">Why can contour lines never cross or branch on a topographic map?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Because a single point on Earth's surface cannot have two different elevations at the same time.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Sumerians made the oldest clay boundary maps, but Greek scholars developed coordinates, and modern cartography uses satellite GIS overlays.",
+                vocab: [
+                    { word: "Cartography", meaning: "The scientific art of drawing and analyzing maps." },
+                    { word: "Contour Line", meaning: "A line on a map connecting points of equal height above sea level." },
+                    { word: "Isoline", meaning: "A line connecting points experiencing equal values of a specific measure." },
+                    { word: "GIS", meaning: "Geographic Information System—software that overlays digital map layers." },
+                    { word: "T-O Map", meaning: "Medieval European maps shaping Asia, Europe, and Africa with Jerusalem at the center." }
+                ],
+                summary: [
+                    "Sumerians engraved the oldest known boundary maps on clay tablets 4,000 years ago.",
+                    "Ptolemy introduced coordinate lines of latitude and longitude for location mapping.",
+                    "Al-Idrisi drew a detailed world map with South oriented at the top.",
+                    "Contour lines connect points of equal elevation and never cross each other.",
+                    "Modern GIS maps stack data layers (elevation, roads, population) for spatial planning."
+                ],
+                funFact: "Ancient mapmakers often drew sea monsters in blank ocean sections to warn sailors of dangerous currents!",
+                realLife: "Telangana state administrators use GIS map layers to monitor forest reserves and water pipelines in rural zones.",
+                quiz: [
+                    {
+                        q: "Who were the earliest recorded mapmakers in history?",
+                        options: ["Babylonians", "Sumerians", "Greeks", "Romans"],
+                        correct: 1,
+                        exp: "Sumerians engraved the oldest maps on clay tablets 4,000 years ago to record temple land borders."
+                    },
+                    {
+                        q: "What direction was placed at the top of medieval T-O maps?",
+                        options: ["North", "South", "East", "West"],
+                        correct: 2,
+                        exp: "T-O maps placed East at the top, associating it with the location of the biblical Garden of Eden."
+                    },
+                    {
+                        q: "Which cartographer introduced the coordinate grid system of latitude and longitude?",
+                        options: ["Anaximander", "Al-Idrisi", "Ptolemy", "Gerardus Mercator"],
+                        correct: 2,
+                        exp: "Ptolemy introduced coordinates (latitudes and longitudes) to plot places accurately on maps."
+                    },
+                    {
+                        q: "What terrain slope is represented by closely spaced contour lines?",
+                        options: ["Flat Plain", "Gentle Slope", "Steep Slope", "River Valley"],
+                        correct: 2,
+                        exp: "Closely spaced contours indicate that height changes rapidly, showing a steep slope or cliff."
+                    },
+                    {
+                        q: "What does GIS stand for in modern geography?",
+                        options: ["Global Internet Source", "Geographic Information System", "Geological Image Sensor", "General Industrial Survey"],
+                        correct: 1,
+                        exp: "GIS stands for Geographic Information System, which organizes data into stackable digital map layers."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is cartography?", a: "The science and art of drawing maps." },
+                    { q: "Who made the earliest clay maps?", a: "The Sumerians, around 4,000 years ago for temple land records." },
+                    { q: "What top direction did Al-Idrisi use?", a: "South, placing the Arabian Peninsula at the top." },
+                    { q: "What is a contour line?", a: "A line connecting points of equal height above sea level." },
+                    { q: "Can contour lines cross?", a: "No, because a single coordinate cannot have two heights at once." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 2,
+        title: "Energy from the Sun",
+        summary: "Study of solar radiation, insolation, temperature zones, and seasonal heating differences.",
+        description: "Explore solar insolation, earth's curve, and why temperatures vary from the Equator to the Poles.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Solar Insolation and Temperature Zones",
+                youtubeId: "kIID5FDi2JQ",
+                explanation: `
+                    <h3>1. Solar Radiation and Insolation</h3>
+                    <p>The Sun constantly emits energy in the form of electromagnetic waves, known as <strong>solar radiation</strong>. The portion of this solar energy that actually reaches the surface of the Earth is called <span class="underlined-concept">insolation</span> (Incoming Solar Radiation).</p>
+
+                    <h3>2. The Angle of Incidence & Earth's Curve</h3>
+                    <p>Because the Earth is a sphere, solar rays hit the surface at different angles. Near the Equator, the Sun's rays strike vertically at a <span class="underlined-concept">90-degree angle of incidence</span>, focusing intense energy over a small area. Near the poles, the rays hit at a slant, spreading the same amount of heat over a much larger area, which results in colder temperatures.</p>
+
+                    <h3>3. Global Temperature Zones</h3>
+                    <p>Due to unequal insolation, the Earth is divided into three distinct thermal zones: the <strong>Torrid Zone</strong> (hot, near Equator), the <strong>Temperate Zone</strong> (moderate heating), and the <strong>Frigid Zone</strong> (permanently cold, near the poles).</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>insolation</strong>: The measured quantity of solar energy intercepted by a unit area of Earth's surface over a given time.</li>
+                            <li><strong>90-degree angle of incidence</strong>: Straight vertical rays that pass through less atmosphere and concentrate their thermal energy on a narrow surface.</li>
+                        </ul>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h4><i class="fa-solid fa-code-compare"></i> Sample Comparison: Vertical vs. Slanted</h4>
+                        <div class="table-responsive">
+                            <table class="comp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Ray Type</th>
+                                        <th>Angle of Incidence</th>
+                                        <th>Atmospheric Path</th>
+                                        <th>Heating Intensity</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Vertical Rays</strong></td>
+                                        <td>90° (Direct)</td>
+                                        <td>Short path (less scattering)</td>
+                                        <td>Very High (concentrated)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Slanted Rays</strong></td>
+                                        <td>Low angle (Slanted)</td>
+                                        <td>Long path (more scattering)</td>
+                                        <td>Low (spread out)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 4: Analyzing</span></div>
+                            <div class="blooms-q-text">Why does land heat up and cool down much faster than deep ocean waters?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Land is solid and absorbs heat only on the surface, while water is fluid, allows heat to circulate deeply, and evaporates to dissipate heat.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Direct vertical rays near the Equator cause intense heating, while slanted rays near the poles cause cold climates.",
+                vocab: [
+                    { word: "Insolation", meaning: "Incoming solar radiation intercepted by the Earth." },
+                    { word: "Radiation", meaning: "Transmission of energy in the form of waves or particles." },
+                    { word: "Angle of Incidence", meaning: "The angle at which the Sun's rays strike the Earth's surface." },
+                    { word: "Torrid Zone", meaning: "The hot region of Earth surrounding the Equator between the tropics." },
+                    { word: "Convection", meaning: "Heat transfer in fluids or gases through the movement of heated particles." }
+                ],
+                summary: [
+                    "Solar radiation is the energy emitted by the Sun, while insolation is the heat reaching Earth.",
+                    "Earth's spherical shape causes sunlight to strike at vertical or slanted angles.",
+                    "Vertical rays cover less area and heat more intensely than slanted rays.",
+                    "The Equator receives the highest annual insolation, while polar regions receive the least.",
+                    "Thermal zones classify Earth into hot Torrid, moderate Temperate, and frozen Frigid belts."
+                ],
+                funFact: "The sand in deserts can reach over 70°C during the day, but can drop close to freezing at night because dry sand cannot hold heat!",
+                realLife: "Solar panels are installed at a tilt angle matching the local latitude to maximize the vertical angle of incidence of solar rays.",
+                quiz: [
+                    {
+                        q: "What is the term for the solar energy that reaches the Earth's surface?",
+                        options: ["Outflow", "Insolation", "Refraction", "Convection"],
+                        correct: 1,
+                        exp: "Insolation stands for Incoming Solar Radiation, which is the heat intercepted by Earth."
+                    },
+                    {
+                        q: "Why do polar regions receive less heat than equatorial regions?",
+                        options: ["They are further from the Sun", "Sun rays strike at a slanted angle", "They have more mountains", "The wind is stronger there"],
+                        correct: 1,
+                        exp: "At the poles, the spherical curve forces rays to strike at a slanted angle, spreading heat over a larger area."
+                    },
+                    {
+                        q: "Which ray type has the shortest path through the atmosphere?",
+                        options: ["Vertical Rays", "Slanted Rays", "Horizontal Rays", "Reflected Rays"],
+                        correct: 0,
+                        exp: "Vertical rays (90°) pass directly downward, traveling the shortest distance through the scattering atmosphere."
+                    },
+                    {
+                        q: "Which thermal zone contains the hottest climates on Earth?",
+                        options: ["Frigid Zone", "Temperate Zone", "Torrid Zone", "Polar Zone"],
+                        correct: 2,
+                        exp: "The Torrid Zone, located near the Equator, receives direct vertical solar rays year-round, making it the hottest."
+                    },
+                    {
+                        q: "What happens to solar radiation that is bounced back into space without heating Earth?",
+                        options: ["Insolation", "Absorption", "Albedo (Reflection)", "Conduction"],
+                        correct: 2,
+                        exp: "Albedo is the measure of solar reflection, where rays bounce off clouds, ice, or dust without heating the ground."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is insolation?", a: "Incoming Solar Radiation reaching the Earth." },
+                    { q: "What is the angle of incidence?", a: "The angle at which the Sun's rays strike the ground." },
+                    { q: "Where does the Sun strike at 90 degrees?", a: "Near the Equator, causing maximum concentrated heat." },
+                    { q: "Name the three thermal zones.", a: "Torrid (hot), Temperate (moderate), and Frigid (cold)." },
+                    { q: "Why is snow highly reflective?", a: "Clean snow has a high albedo, reflecting up to 90% of solar radiation." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 3,
+        title: "Earth Movements and Seasons",
+        summary: "Analysis of Earth's rotation, tilted orbit, solstices, and equinoxes that generate seasons.",
+        description: "Learn how the Earth's 23.5-degree axial tilt and annual orbit create the seasons.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Axial Tilt and Solstices",
+                youtubeId: "vVqC3u2S7hU",
+                explanation: `
+                    <h3>1. Rotation and Revolution</h3>
+                    <p>The Earth exhibits two primary movements. <strong>Rotation</strong> is the spinning of Earth on its axis once every 24 hours, causing day and night. <strong>Revolution</strong> is the orbit of Earth around the Sun once every 365.25 days, which outlines our calendar year.</p>
+
+                    <h3>2. The Tilted Axis</h3>
+                    <p>Crucially, the Earth's axis of rotation is <span class="underlined-concept">tilted at an angle of 23.5 degrees</span> relative to its orbital plane. This tilt remains pointed in the same direction in space (Polaris) as Earth orbits the Sun, a phenomenon called axis parallelism.</p>
+
+                    <h3>3. Solstices and Equinoxes</h3>
+                    <p>As a result of this tilt, different hemispheres lean toward the Sun at different points in the orbit. During the <strong>Summer Solstice</strong> (June 21), the Northern Hemisphere tilts toward the Sun, causing the longest day of the year. During the <strong>Winter Solstice</strong> (December 21), it tilts away. During the <strong>Equinoxes</strong> (March 21 and September 23), <span class="underlined-concept">neither hemisphere tilts toward the Sun</span>, resulting in equal 12-hour day and night everywhere.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>tilted at an angle of 23.5 degrees</strong>: Earth's rotational axis is not perpendicular, but leans, meaning one hemisphere receives more sunlight than the other for half of the orbit.</li>
+                            <li><strong>neither hemisphere tilts toward the Sun</strong>: The tilt is sideways relative to the Sun, aligning the solar rays directly above the Equator.</li>
+                        </ul>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: Rotation vs. Revolution</div>
+                        <div class="vs-content">
+                            <span class="vs-highlight">Rotation</span> is the Earth spinning on its own axis, creating the 24-hour day/night cycle, whereas <span class="vs-highlight">Revolution</span> is the Earth orbiting around the Sun, which takes 365.25 days and creates the seasonal calendar.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 5: Evaluating</span></div>
+                            <div class="blooms-q-text">What would happen to the seasons if Earth's axis had zero tilt?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> There would be no seasons. Every location would experience the same climate and equal 12-hour days and nights all year round.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Earth's 23.5° tilt causes the Northern and Southern hemispheres to experience opposite seasons as Earth orbits the Sun.",
+                vocab: [
+                    { word: "Rotation", meaning: "The spinning of the Earth on its axis once every 24 hours." },
+                    { word: "Revolution", meaning: "The movement of Earth around the Sun taking 365.25 days." },
+                    { word: "Solstice", meaning: "The two points in orbit when the Sun is furthest north or south of the Equator." },
+                    { word: "Equinox", meaning: "The two days in the year when day and night are equal everywhere on Earth." },
+                    { word: "Orbit", meaning: "The elliptical path followed by Earth around the Sun." }
+                ],
+                summary: [
+                    "Earth's rotation on its axis causes day and night cycles every 24 hours.",
+                    "Earth revolves around the Sun in an elliptical orbit once a year.",
+                    "The axis is tilted at 23.5 degrees, pointing towards the North Star.",
+                    "Solstices mark the peak of summer and winter when one hemisphere leans closest to the Sun.",
+                    "Equinoxes occur in spring and autumn when the Sun shines directly on the Equator."
+                ],
+                funFact: "Because the Northern and Southern hemispheres lean in opposite directions, Christmas occurs in the middle of summer in Australia!",
+                realLife: "Farming cycles in India, like the Kharif and Rabi crops, are directly aligned with the solar seasons and monsoons.",
+                quiz: [
+                    {
+                        q: "What causes the daily cycle of day and night?",
+                        options: ["Earth's Orbit", "Earth's Rotation", "Earth's Revolution", "The Sun's Rotation"],
+                        correct: 1,
+                        exp: "Earth's rotation (spinning on its axis once every 24 hours) causes different parts of the globe to face the Sun."
+                    },
+                    {
+                        q: "At what angle is the Earth's axis tilted?",
+                        options: ["0 degrees", "23.5 degrees", "45 degrees", "90 degrees"],
+                        correct: 1,
+                        exp: "The Earth's axis of rotation is tilted at 23.5 degrees relative to its orbital plane."
+                    },
+                    {
+                        q: "On what day does the Northern Hemisphere experience its longest day (Summer Solstice)?",
+                        options: ["March 21", "June 21", "September 23", "December 21"],
+                        correct: 1,
+                        exp: "On June 21, the Northern Hemisphere tilts closest to the Sun, experiencing the longest day."
+                    },
+                    {
+                        q: "What is true about the Equinox?",
+                        options: ["Day is longer than night", "Night is longer than day", "Day and night are equal everywhere", "It only happens at the poles"],
+                        correct: 2,
+                        exp: "During the equinox, the Sun is directly over the Equator, making day and night equal (12 hours) globally."
+                    },
+                    {
+                        q: "How long does it take for Earth to complete one full revolution around the sun?",
+                        options: ["24 hours", "30 days", "365.25 days", "10 years"],
+                        correct: 2,
+                        exp: "Earth takes 365 days and 6 hours (365.25 days) to revolve around the Sun, forming our calendar year."
+                    }
+                ],
+                flashcards: [
+                    { q: "What causes day and night?", a: "Earth spinning on its axis (rotation)." },
+                    { q: "What is the angle of Earth's tilt?", a: "23.5 degrees." },
+                    { q: "What does equinox mean?", a: "Equal night (day and night are equal to 12 hours everywhere)." },
+                    { q: "When is the Winter Solstice in the North?", a: "December 21, when the Northern hemisphere tilts away from the Sun." },
+                    { q: "Why is there a leap year?", a: "To account for the extra 6 hours (.25 day) of orbit each year, adding a day every 4 years." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 4,
+        title: "The Polar Regions",
+        summary: "Introduction to the Tundra, cold climates, midnight sun, and the lifestyles of the Eskimos.",
+        description: "Study the freezing Tundra biome, the Midnight Sun phenomenon, and polar survival strategies.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "The Tundra and Polar Livelihoods",
+                youtubeId: "pvw5ZM1OKcY",
+                explanation: `
+                    <h3>1. The Tundra Biome</h3>
+                    <p>The regions surrounding the North Pole are known as the <strong>Tundra</strong>. This biome is characterized by an extremely cold climate, minimal precipitation, and a permanently frozen subsoil layer called <span class="underlined-concept">permafrost</span>. Tree growth is impossible due to the freezing cold, leaving only moss, lichens, and small shrubs.</p>
+
+                    <h3>2. The Midnight Sun & Polar Darkness</h3>
+                    <p>Because of Earth's tilt, the polar regions experience extreme light conditions. During summer, the sun never sets for several months, a phenomenon known as the <span class="underlined-concept">Midnight Sun</span>. Conversely, in winter, the sun never rises above the horizon, leaving the region in constant freezing darkness.</p>
+
+                    <h3>3. The Eskimos (Inuit & Yupik)</h3>
+                    <p>Human survival in the Tundra is represented by the <strong>Eskimos</strong>, consisting of the Inuit and Yupik groups. Traditionally, they survived by hunting seals, walruses, and caribou, living in temporary snow houses called <strong>igloos</strong> during winter hunting trips, and tents made of animal skins in the summer.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>permafrost</strong>: A thick subsurface layer of soil that remains frozen solid throughout the entire year, preventing plant roots from digging deep.</li>
+                            <li><strong>Midnight Sun</strong>: A natural occurrence where the Sun remains visible at local midnight because the pole is tilted fully towards the Sun.</li>
+                        </ul>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h4><i class="fa-solid fa-code-compare"></i> Seasons: Tundra Winter vs. Tundra Summer</h4>
+                        <div class="table-responsive">
+                            <table class="comp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Tundra Winter</th>
+                                        <th>Tundra Summer</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Daylight</strong></td>
+                                        <td>24 Hours of Darkness</td>
+                                        <td>24 Hours of Light (Midnight Sun)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Shelters</strong></td>
+                                        <td>Igloos (snow blocks) or sod houses</td>
+                                        <td>Tupiks (animal skin tents)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 3: Applying</span></div>
+                            <div class="blooms-q-text">How do modern technologies affect the traditional hunting and travel practices of the Inuit?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Snowmobiles and motorboats have replaced dog sleds and kayaks, speeding up travel but increasing dependency on fuel and imports.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "The Tundra has a frozen permafrost layer, experiences months of constant daylight or darkness, and is home to the Inuit people.",
+                vocab: [
+                    { word: "Tundra", meaning: "A vast, flat, treeless Arctic region where the subsoil is permanently frozen." },
+                    { word: "Permafrost", meaning: "Permanently frozen ground beneath the Earth's surface in polar zones." },
+                    { word: "Midnight Sun", meaning: "The continuous 24-hour daylight experienced in summer in polar circles." },
+                    { word: "Igloo", meaning: "A dome-shaped winter dwelling built from blocks of hard-packed snow." },
+                    { word: "Harpoon", meaning: "A barbed spear used by the Inuit to hunt seals and whales." }
+                ],
+                summary: [
+                    "The Tundra is a freezing, treeless plain surrounding the North Pole.",
+                    "Permafrost is the frozen subsoil that limits plant growth to mosses and lichens.",
+                    "Summer brings continuous daylight (Midnight Sun), while winter brings complete darkness.",
+                    "Eskimos are indigenous polar groups who adapted to live in these extreme climates.",
+                    "Traditional Inuit hunted marine mammals and lived in igloos during winter cycles."
+                ],
+                funFact: "Igloos can be 40 degrees warmer inside than outside because compact snow acts as a highly efficient heat insulator, trapping body heat!",
+                realLife: "Global warming is causing Arctic permafrost to melt, which collapses building foundations and releases ancient trapped carbon gases.",
+                quiz: [
+                    {
+                        q: "What is the name of the permanently frozen subsoil layer in the Tundra?",
+                        options: ["Glacier", "Iceberg", "Permafrost", "Silt"],
+                        correct: 2,
+                        exp: "Permafrost is the layer of soil that remains frozen solid for consecutive years in polar zones."
+                    },
+                    {
+                        q: "Which phenomenon describes 24 hours of sun during the Arctic summer?",
+                        options: ["Solar Flare", "Midnight Sun", "Aurora Borealis", "Polar Twilight"],
+                        correct: 1,
+                        exp: "The Midnight Sun is when the sun remains above the horizon even at midnight in summer circles."
+                    },
+                    {
+                        q: "What name do the polar people use to refer to themselves instead of 'Eskimo'?",
+                        options: ["Maori", "Inuit", "Sherpa", "Bedouin"],
+                        correct: 1,
+                        exp: "The term 'Inuit' (meaning 'the people') is preferred by the indigenous inhabitants of the Arctic regions."
+                    },
+                    {
+                        q: "What is a traditional winter house made of snow blocks called?",
+                        options: ["Tupik", "Igloo", "Yurt", "Wigwam"],
+                        correct: 1,
+                        exp: "An igloo is the traditional winter dome built from dense blocks of snow by Inuit hunters."
+                    },
+                    {
+                        q: "Which animal was NOT traditionally hunted by the Inuit for survival?",
+                        options: ["Seal", "Walrus", "Bengal Tiger", "Caribou"],
+                        correct: 2,
+                        exp: "Bengal Tigers are native to tropical Asian forests, whereas seals, walruses, and caribou are polar animals."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is the Tundra?", a: "A cold, dry, treeless polar biome." },
+                    { q: "What is permafrost?", a: "Permanently frozen subsoil that prevents tree roots from growing." },
+                    { q: "What is the Midnight Sun?", a: "Constant 24-hour daylight during the polar summer." },
+                    { q: "What is an igloo?", a: "A dome-shaped shelter built from blocks of frozen snow." },
+                    { q: "What animal skin is used for summer tents?", a: "Caribou or seal skins, creating tents called tupiks." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 5,
+        title: "Forests: Using and Protecting Them",
+        summary: "Analysis of forest types, evergreen vs deciduous trees, deforestation, and community conservation.",
+        description: "Study tropical evergreen and deciduous forests, tribal rights, and state protection initiatives.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Forest Types and Conservation Laws",
+                youtubeId: "vVqC3u2S7hU",
+                explanation: `
+                    <h3>1. Forest Classifications</h3>
+                    <p>Forests are categorized by their climatic adaptations. <strong>Evergreen Forests</strong> remain green all year because trees shed leaves at different times. <strong>Deciduous Forests</strong> drop all their leaves in the dry season to prevent water loss through transpiration. <strong>Thorny Scrub Forests</strong> grow in dry regions, featuring deep roots and spikes to store moisture.</p>
+
+                    <h3>2. Reserve and Protected Forests</h3>
+                    <p>To control exploitation, governments classify forests. <span class="underlined-concept">Reserve Forests</span> are strictly controlled by the state; no logging or grazing is permitted. <span class="underlined-concept">Protected Forests</span> allow local communities to collect dry firewood and graze livestock, under strict state licensing rules.</p>
+
+                    <h3>3. Forest Rights Act (2006)</h3>
+                    <p>For decades, tribal groups (Adivasis) were treated as encroachers. In 2006, the Indian government passed the <strong>Forest Rights Act (FRA)</strong>, recognizing the land rights of forest-dwelling communities and allowing them to protect and manage their traditional forest boundaries.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>Reserve Forests</strong>: Forests set aside for environmental protection where public access and logging are completely banned.</li>
+                            <li><strong>Protected Forests</strong>: State forests where local dwellers are granted limited rights to gather forest produce without destroying the canopy.</li>
+                        </ul>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: Evergreen vs. Deciduous</div>
+                        <div class="vs-content">
+                            <span class="vs-highlight">Evergreen Forests</span> grow in heavy rainfall zones and keep their leaves year-round, whereas <span class="vs-highlight">Deciduous Forests</span> grow in moderate rainfall zones and shed all leaves in winter or dry months to conserve water.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 4: Analyzing</span></div>
+                            <div class="blooms-q-text">Explain the dual role of forests in maintaining ecological balance and supporting local livelihoods.</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Forests clean the air, preserve soil, and absorb carbon while simultaneously providing wood, bamboo, fruits, and honey to tribal families.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Reserve forests are off-limits for public use, deciduous forests shed leaves in the dry season, and the 2006 FRA protects tribal land rights.",
+                vocab: [
+                    { word: "Deciduous", meaning: "Trees that shed their leaves annually during the dry season to prevent water loss." },
+                    { word: "Reserve Forest", meaning: "State forest land where public entry and logging are completely prohibited." },
+                    { word: "FRA 2006", meaning: "Forest Rights Act, securing land ownership rights for forest-dwelling tribes." },
+                    { word: "Deforestation", meaning: "The clearing and cutting down of forest cover for farming or industry." },
+                    { word: "Podu Agriculture", meaning: "A traditional form of shifting cultivation practiced by tribes on hill slopes." }
+                ],
+                summary: [
+                    "Evergreen forests remain lush green all year, growing in high-rainfall belts.",
+                    "Deciduous forests shed all leaves during the dry summer to conserve moisture.",
+                    "Reserve forests are strictly protected, whereas protected forests allow limited community access.",
+                    "Tribal groups have historically depended on forest products like honey, bamboo, and seeds.",
+                    "The Forest Rights Act of 2006 returned land management rights to traditional tribes."
+                ],
+                funFact: "One mature tree can absorb over 22 kilograms of carbon dioxide every year, purifying the air for an entire household!",
+                realLife: "The Telangana government runs the 'Haritha Haram' program, planting millions of trees to increase the state's green cover to 33%.",
+                quiz: [
+                    {
+                        q: "Which forest type is characterized by trees that shed leaves during the dry season?",
+                        options: ["Evergreen Forests", "Deciduous Forests", "Thorny Scrub Forests", "Coniferous Forests"],
+                        correct: 1,
+                        exp: "Deciduous trees shed leaves during dry months to minimize water loss through transpiration."
+                    },
+                    {
+                        q: "In which forest classification is grazing and logging completely banned?",
+                        options: ["Protected Forests", "Reserve Forests", "Private Forests", "Community Forests"],
+                        correct: 1,
+                        exp: "Reserve Forests are strictly protected by government departments, and logging and grazing are banned."
+                    },
+                    {
+                        q: "In what year did the Indian Parliament pass the Forest Rights Act?",
+                        options: ["1947", "1980", "2006", "2020"],
+                        correct: 2,
+                        exp: "The Forest Rights Act was passed in 2006 to recognize Adivasi land ownership."
+                    },
+                    {
+                        q: "What is the traditional shifting cultivation practiced by tribes in Telangana called?",
+                        options: ["Terracing", "Podu Agriculture", "Strip Farming", "Hydroponics"],
+                        correct: 1,
+                        exp: "Podu is the local name for slash-and-burn shifting cultivation on hill slopes."
+                    },
+                    {
+                        q: "Which program was launched by the Telangana government to increase forest cover?",
+                        options: ["Mission Kakatiya", "Arogyasri", "Telanganaku Haritha Haram", "Rythu Bandhu"],
+                        correct: 2,
+                        exp: "Telanganaku Haritha Haram is the state's afforestation program to plant saplings across Telangana."
+                    }
+                ],
+                style: "afforestation",
+                flashcards: [
+                    { q: "What are evergreen forests?", a: "Rainy forests where trees keep green leaves all year." },
+                    { q: "Why do deciduous trees shed leaves?", a: "To save water during dry seasons." },
+                    { q: "What is a reserve forest?", a: "A government forest off-limits for public extraction." },
+                    { q: "What is Podu?", a: "Shifting cultivation practiced by Adivasi tribes." },
+                    { q: "What rights does the 2006 FRA secure?", a: "Land ownership rights for traditional forest tribes." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 6,
+        title: "Minerals and Mining",
+        summary: "Understanding metallic/non-metallic ores, open-cast vs underground mining, and labor safety.",
+        description: "Study mineral extraction methods, mineral ownership laws, and safety in coal mines.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Mineral Ores and Mining Methods",
+                youtubeId: "32Y2V23t6V0",
+                explanation: `
+                    <h3>1. Ores and Minerals</h3>
+                    <p>Minerals are naturally occurring inorganic substances. Rocks that contain a high concentration of a particular mineral are called <strong>ores</strong> (e.g. Iron ore, Bauxite, Coal). Minerals are divided into <strong>metallic</strong> (iron, copper) and <strong>non-metallic</strong> (mica, limestone).</p>
+
+                    <h3>2. Mining Methods</h3>
+                    <p>Minerals are extracted based on depth. <span class="underlined-concept">Open-cast mining</span> involves digging a wide, open pit near the surface to extract minerals. <span class="underlined-concept">Underground mining</span> requires drilling deep vertical shafts and tunnels to reach deep mineral seams, which is common in coal mines.</p>
+
+                    <h3>3. Mineral Ownership & State Rights</h3>
+                    <p>In India, all underground mineral resources belong to the government. Mining companies must pay a tax called a <strong>royalty</strong> to the state for every ton of minerals extracted.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>Open-cast mining</strong>: Surface extraction that creates giant stepped pits, destroying surface forests but keeping operations relatively safe.</li>
+                            <li><strong>Underground mining</strong>: Shaft mining where workers labor in narrow, deep tunnels under risk of collapse and gas explosions.</li>
+                        </ul>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: Open-cast vs. Underground Mining</div>
+                        <div class="vs-content">
+                            <span class="vs-highlight">Open-cast mining</span> is cheaper, safer, and done at the surface, leaving massive open craters, whereas <span class="vs-highlight">Underground mining</span> is expensive, hazardous, and goes deep beneath the Earth to retrieve resources.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 4: Analyzing</span></div>
+                            <div class="blooms-q-text">Analyze the environmental impacts of surface mining compared to deep shaft mining.</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Surface mining clears topsoil and destroys forests, while shaft mining risks polluting groundwater and causing land subsidence.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Surface minerals are mined using open-cast pits, while deep coal seams are mined using shafts. Mineral royalties belong to the state.",
+                vocab: [
+                    { word: "Ore", meaning: "A natural rock deposit containing extractable metals or minerals." },
+                    { word: "Open-cast Mining", meaning: "Surface mining that extracts mineral deposits from an open pit." },
+                    { word: "Underground Mining", meaning: "Deep mining using vertical shafts and horizontal tunnels." },
+                    { word: "Royalty", meaning: "Tax paid by mining companies to the government for extracting state minerals." },
+                    { word: "SCCL", meaning: "Singareni Collieries Company Limited—Telangana's state-owned coal mining company." }
+                ],
+                summary: [
+                    "Ores are mineral-bearing rocks extracted from the Earth's crust.",
+                    "Minerals are classified into metallic elements and non-metallic resources.",
+                    "Surface deposits are mined through wide open-cast pits.",
+                    "Deep underground seams require vertical shafts and tunnels.",
+                    "SCCL manages the major coal mining operations across the Godavari valley of Telangana."
+                ],
+                funFact: "Coal is actually the compressed remains of ancient swamp plants that grew over 300 million years ago, buried under mud and heated by Earth's crust!",
+                realLife: "The electricity in our homes in Telangana is mostly generated by burning coal mined in Kothagudem by SCCL / Singareni workers.",
+                quiz: [
+                    {
+                        q: "What is a rock that contains a high concentration of metallic minerals called?",
+                        options: ["Lava", "Ore", "Sediment", "Fossil"],
+                        correct: 1,
+                        exp: "An ore is a rock containing enough mineral content to make mining economically viable."
+                    },
+                    {
+                        q: "Which mining method creates a giant stepped pit open at the surface?",
+                        options: ["Shaft Mining", "Drill Mining", "Open-cast Mining", "Underground Mining"],
+                        correct: 2,
+                        exp: "Open-cast mining digs out minerals directly from wide pits open to the sky."
+                    },
+                    {
+                        q: "Who officially owns the minerals found beneath the ground in India?",
+                        options: ["The landowner", "The local village panchayat", "The government", "The mining company"],
+                        correct: 2,
+                        exp: "Under Indian law, all sub-surface minerals are public property owned by the government."
+                    },
+                    {
+                        q: "Which state-owned company operates coal mines in Telangana?",
+                        options: ["Coal India Limited", "SCCL", "NTPC", "ONGC"],
+                        correct: 1,
+                        exp: "Singareni Collieries Company Limited (SCCL) is the public coal company of Telangana."
+                    },
+                    {
+                        q: "What is the fee paid to the government by mining companies for mineral extraction?",
+                        options: ["Subsidy", "Royalty", "Salary", "Custom Duty"],
+                        correct: 1,
+                        exp: "A royalty is a tax paid per ton of extracted mineral resources to the state government."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is mineral ore?", a: "A rock containing valuable mineral deposits." },
+                    { q: "What is open-cast mining?", a: "Digging minerals from an open pit at the surface." },
+                    { q: "What is shaft mining?", a: "Underground mining using deep vertical shafts and tunnels." },
+                    { q: "What is SCCL?", a: "Singareni Collieries, the major coal mining operator in Telangana." },
+                    { q: "What is mining royalty?", a: "Tax paid to the government for extracting minerals." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 7,
+        title: "Money and Banking",
+        summary: "Evolution of currency, barter exchanges, modern bank deposits, loans, and credit generation.",
+        description: "Trace money from barter trade to digital coins, and explore how banks multiply credit.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Evolution of Money and Bank Credit",
+                youtubeId: "kIID5FDi2JQ",
+                explanation: `
+                    <h3>1. The Barter System</h3>
+                    <p>Before money, people used the <strong>barter system</strong>, directly exchanging goods for other goods (e.g. exchanging rice for cows). This required a <span class="underlined-concept">double coincidence of wants</span>—where both parties wanted what the other was offering, which was a rare occurrence.</p>
+
+                    <h3>2. Evolution of Coinage</h3>
+                    <p>To simplify trade, societies introduced money. First came commodity money (shells, salt), then precious metals (gold, silver coins), paper money (promissory notes), and finally, modern digital money. The <strong>Reserve Bank of India (RBI)</strong> regulates and issues all currency notes in India.</p>
+
+                    <h3>3. Commercial Banking & Loans</h3>
+                    <p>Banks act as intermediaries. They accept deposits from savers and pay them a small interest rate. They then lend this money to borrowers at a higher interest rate. The difference between these rates is the bank's profit, or spread. Through this process, banks generate <span class="underlined-concept">credit creation</span>.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>double coincidence of wants</strong>: The difficult requirement in barter where two traders must desire each other's specific products to complete an exchange.</li>
+                            <li><strong>credit creation</strong>: The banking mechanism where a deposit is lent out repeatedly, generating new purchasing power across the economy.</li>
+                        </ul>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: Barter vs. Monetary System</div>
+                        <div class="vs-content">
+                            The <span class="vs-highlight">Barter System</span> relies on directly swapping goods and requires a double coincidence of wants, while the <span class="vs-highlight">Monetary System</span> uses a standard medium of exchange (money) to buy any product instantly.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 4: Analyzing</span></div>
+                            <div class="blooms-q-text">How does the RBI maintain trust in paper currency notes that have no intrinsic value?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> RBI prints a legal guarantee signed by the Governor, making it legal tender that everyone is legally required to accept for debts.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "The barter system failed due to the double coincidence of wants. Banks accept deposits and multiply money through credit loans.",
+                vocab: [
+                    { word: "Barter System", meaning: "Direct exchange of goods for goods without using money." },
+                    { word: "Double Coincidence", meaning: "When two trade partners desire each other's goods." },
+                    { word: "RBI", meaning: "Reserve Bank of India—the central banking authority of India." },
+                    { word: "Credit Creation", meaning: "The expansion of bank deposits through loan multiplication." },
+                    { word: "Cheque", meaning: "A paper document instructing a bank to pay a specific amount from an account." }
+                ],
+                summary: [
+                    "Barter trade required a double coincidence of wants, which made trading difficult.",
+                    "Money evolved from commodity goods to precious metal coins and paper currency.",
+                    "The Reserve Bank of India acts as the central bank that prints notes.",
+                    "Commercial banks borrow from savers at low interest and lend to borrowers at higher rates.",
+                    "Banks multiply deposits into multiple loans, expanding credit across the economy."
+                ],
+                funFact: "Historically, salt was so valuable that Roman soldiers were paid in salt. The word 'salary' comes from the Latin word for salt, 'sal'!",
+                realLife: "Using UPI on smartphones to scan QR codes transfers digital money directly between bank accounts without paper notes.",
+                quiz: [
+                    {
+                        q: "Which system relies on exchanging goods directly for other goods?",
+                        options: ["Monetary System", "Credit System", "Barter System", "Banking System"],
+                        correct: 2,
+                        exp: "The barter system is the direct exchange of products without using currency."
+                    },
+                    {
+                        q: "What is the main limitation of barter trade?",
+                        options: ["Money is too heavy", "Double coincidence of wants", "Lack of shops", "High taxes"],
+                        correct: 1,
+                        exp: "Barter requires both traders to want what the other is selling, which is difficult to find."
+                    },
+                    {
+                        q: "Which institution issues all paper currency notes in India?",
+                        options: ["State Bank of India", "Reserve Bank of India", "Ministry of Finance", "Panchayat Board"],
+                        correct: 1,
+                        exp: "The Reserve Bank of India (RBI) is the central authority that controls currency issue."
+                    },
+                    {
+                        q: "How do commercial banks earn their primary profits?",
+                        options: ["Charging account fees", "Government donations", "Interest spread between deposits and loans", "Printing notes"],
+                        correct: 2,
+                        exp: "Banks charge higher interest on loans than they pay on deposits, keeping the difference as profit."
+                    },
+                    {
+                        q: "What is a paper document instructing a bank to pay money from a deposit called?",
+                        options: ["Currency Note", "Cheque", "Receipt", "Bond"],
+                        correct: 1,
+                        exp: "A cheque is a direct written instruction to a bank to transfer funds between accounts."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is the barter system?", a: "Exchanging goods directly for other goods." },
+                    { q: "What is the double coincidence of wants?", a: "When both trading parties want each other's goods." },
+                    { q: "What is RBI?", a: "Reserve Bank of India, the central bank of India." },
+                    { q: "What is bank spread?", a: "The difference between interest charged on loans and interest paid on deposits." },
+                    { q: "What is digital money?", a: "Electronic bank balances accessed via cards or phone apps." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 8,
+        title: "Impact of Technology on Livelihoods",
+        summary: "Analysis of technology in agriculture, handlooms vs powerlooms, and changing job patterns.",
+        description: "Examine how mechanization boosts production speed but alters employment and jobs.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Agricultural Mechanization and Industrial Shifts",
+                youtubeId: "32Y2V23t6V0",
+                explanation: `
+                    <h3>1. Agricultural Mechanization</h3>
+                    <p>In recent decades, new machines have transformed farming. Wooden plows and bullocks are replaced by tractors, harvesters, and irrigation pumps. This <span class="underlined-concept">agricultural mechanization</span> allows a single farmer to complete days of weeding, tilling, and harvesting in hours, reducing dependency on manual labor.</p>
+
+                    <h3>2. The Job Displacement Trade-Off</h3>
+                    <p>While machines lower production costs, they create a major social challenge. Landless agricultural laborers lose their seasonal harvesting jobs. This forces many rural workers to migrate to cities to work as daily wage laborers in construction or services.</p>
+
+                    <h3>3. Handloom vs. Powerloom Weavers</h3>
+                    <p>In the textile sector, traditional <strong>handlooms</strong> (manually operated weaving frames) face intense competition from automated <strong>powerlooms</strong>. Powerlooms produce fabrics much faster and cheaper, leaving handloom weavers in distress unless they produce specialized silks like Pochampally.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>agricultural mechanization</strong>: The transition from manual farm tools to motorized machinery, raising crop output but reducing farm jobs.</li>
+                        </ul>
+                    </div>
+
+                    <div class="comparison-card">
+                        <h4><i class="fa-solid fa-code-compare"></i> Production: Handlooms vs. Powerlooms</h4>
+                        <div class="table-responsive">
+                            <table class="comp-table">
+                                <thead>
+                                    <tr>
+                                        <th>Feature</th>
+                                        <th>Handloom Weaving</th>
+                                        <th>Powerloom Weaving</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Power Source</strong></td>
+                                        <td>Manual human labor</td>
+                                        <td>Electric power</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Production Speed</strong></td>
+                                        <td>Slow (takes days per saree)</td>
+                                        <td>Fast (multiple sarees per day)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 5: Evaluating</span></div>
+                            <div class="blooms-q-text">Is technology a net benefit or a net harm to traditional rural artisans?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> It is mixed. It increases cheap goods for consumers, but can destroy the livelihood security of manual artisans.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Farm machines increase crop output but displace landless farm laborers. Powerlooms produce cheaper cloth, creating challenges for handloom weavers.",
+                vocab: [
+                    { word: "Mechanization", meaning: "Replacing manual human labor with machines." },
+                    { word: "Handloom", meaning: "A manually operated weaving frame that weaves cloth using human power." },
+                    { word: "Powerloom", meaning: "An automated weaving frame powered by electricity." },
+                    { word: "Migration", meaning: "The movement of people from rural areas to cities in search of jobs." },
+                    { word: "Livelihood", meaning: "A secure way of earning money to afford life's basic needs." }
+                ],
+                summary: [
+                    "Motorized tractors and harvesters have replaced traditional draft animals.",
+                    "Mechanization speeds up harvesting but reduces manual farming jobs.",
+                    "Rural laborers migrate to urban areas in search of construction wages.",
+                    "Powerlooms produce cheap textiles that undercut handloom goods.",
+                    "Artisans must specialize in unique products like silk to survive in the market."
+                ],
+                funFact: "A modern combine harvester can harvest, thresh, and clean grain from an acre of wheat in under 30 minutes, a task that once took a team of ten people several days!",
+                realLife: "The famous Pochampally ikat weavers of Telangana use handlooms to weave traditional designs that are protected under geographic registration laws.",
+                quiz: [
+                    {
+                        q: "What is the primary effect of using tractors and combined harvesters in agriculture?",
+                        options: ["Increases soil water", "Reduces crop yield", "Speeds up work but decreases manual jobs", "Changes crop colors"],
+                        correct: 2,
+                        exp: "Machinery accelerates agricultural operations but displaces landless farm laborers."
+                    },
+                    {
+                        q: "Which power source operates a powerloom?",
+                        options: ["Human muscle power", "Steam engine", "Electricity", "Solar water heating"],
+                        correct: 2,
+                        exp: "Powerlooms run on electricity, automating the weaving of threads into cloth at high speed."
+                    },
+                    {
+                        q: "Why do rural farm laborers migrate to cities?",
+                        options: ["To buy farmland", "Because machines replaced seasonal farm work", "To avoid summer heat", "To become cartographers"],
+                        correct: 1,
+                        exp: "Displaced by farm machinery, workers move to urban construction zones to secure wages."
+                    },
+                    {
+                        q: "Which Telangana handloom center is globally famous for its Ikat sarees?",
+                        options: ["Nirmal", "Secunderabad", "Pochampally", "Kothagudem"],
+                        correct: 2,
+                        exp: "Pochampally is famous for its hand-woven Ikat sarees that carry geographical indicators."
+                    },
+                    {
+                        q: "What is the process of replacing human labor with machines called?",
+                        options: ["Afforestation", "Siltation", "Mechanization", "Urbanization"],
+                        correct: 2,
+                        exp: "Mechanization refers to replacing human manual work with automated machines."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is mechanization?", a: "Replacing manual human work with machines." },
+                    { q: "How does farming machinery affect workers?", a: "It speeds up crops but displaces landless laborers." },
+                    { q: "What is a handloom?", a: "A weaving loom operated manually by human muscles." },
+                    { q: "What is a powerloom?", a: "An automated weaving loom operated by electricity." },
+                    { q: "Why do displaced laborers move to cities?", a: "To find work as daily wage earners in urban industries." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 9,
+        title: "Public Health and the Government",
+        summary: "Analysis of clean water, sanitation, public vs private healthcare, and state welfare policies.",
+        description: "Study state healthcare systems, public clinics, preventative care, and rural health challenges.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Public Healthcare and State Welfare",
+                youtubeId: "vVqC3u2S7hU",
+                explanation: `
+                    <h3>1. Health as a Human Right</h3>
+                    <p>According to the Indian Constitution, the right to health is a fundamental aspect of the Right to Life. Health is not just being free from disease, but includes access to clean drinking water, sanitation, safe housing, and proper nutrition.</p>
+
+                    <h3>2. Public vs. Private Healthcare Systems</h3>
+                    <p>Healthcare is split into two systems. <span class="underlined-concept">Public Health Services</span> are run by the government, consisting of Primary Health Centers (PHCs) in villages and Area Hospitals in cities, providing free or low-cost treatment. <span class="underlined-concept">Private Health Services</span> are owned by individuals or corporations, offering advanced equipment but at high costs that can be difficult for poor families to afford.</p>
+
+                    <h3>3. Preventative vs. Curative Care</h3>
+                    <p>Preventative care focuses on preventing diseases before they happen (e.g. clean drinking water, vaccinations, mosquito control). Curative care focuses on treating sick patients. Governments must invest in preventative care to reduce the overall burden on hospitals.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>Public Health Services</strong>: Government clinic chains funded by taxpayer money to provide universal medical access to all citizens.</li>
+                            <li><strong>Private Health Services</strong>: Corporate hospitals operated for profit, charging patient fees for diagnostic testing and surgeries.</li>
+                        </ul>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: PHC vs. Private Hospital</div>
+                        <div class="vs-content">
+                            A <span class="vs-highlight">Primary Health Center (PHC)</span> is a free government village clinic focusing on basic treatments and vaccines, while a <span class="vs-highlight">Private Hospital</span> is a commercial facility offering specialized operations for high fees.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 4: Analyzing</span></div>
+                            <div class="blooms-q-text">Why does lack of clean drinking water lead to a severe crisis in public healthcare?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Contaminated water spreads waterborne diseases like typhoid and cholera, leading to preventable hospitalizations that strain public clinics.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "The Constitution guarantees the right to health. Public health clinics are government-run and free, while private clinics are corporate and expensive.",
+                vocab: [
+                    { word: "PHC", meaning: "Primary Health Center—a government-run basic clinic in rural areas." },
+                    { word: "Waterborne Disease", meaning: "Diseases like cholera or typhoid spread by drinking contaminated water." },
+                    { word: "Public Service", meaning: "A service provided by the government and funded by tax revenues." },
+                    { word: "Generic Medicine", meaning: "Medicines containing the same chemical formula as branded drugs but sold at much lower prices." },
+                    { word: "Sanitation", meaning: "Public hygiene systems, including toilet access and clean waste disposal." }
+                ],
+                summary: [
+                    "Health requires clean water, proper nutrition, and sanitation alongside hospitals.",
+                    "Public health systems use taxpayer funds to offer free basic medical care.",
+                    "Private health systems offer advanced care but charge high fees.",
+                    "PHCs provide basic medical services and immunization programs in rural zones.",
+                    "Preventative health measures, like clean water, reduce the spread of infectious diseases."
+                ],
+                funFact: "Washing hands with soap and clean water regularly can prevent up to 40% of diarrheal infections globally, making it a highly effective health measure!",
+                realLife: "Telangana's 'Mission Bhagiratha' program delivers treated, piped drinking water to rural homes to reduce waterborne infections.",
+                quiz: [
+                    {
+                        q: "Which constitutional right in India covers the right to health?",
+                        options: ["Right to Property", "Right to Education", "Right to Life (Article 21)", "Right to Freedom of Speech"],
+                        correct: 2,
+                        exp: "The Supreme Court has ruled that the Right to Life under Article 21 includes the right to health care."
+                    },
+                    {
+                        q: "What is a rural government-run medical clinic called?",
+                        options: ["Private Hospital", "Super Specialty Center", "Primary Health Center (PHC)", "Corporate Dispensary"],
+                        correct: 2,
+                        exp: "Primary Health Centers (PHCs) are established in rural blocks to provide free basic medical services."
+                    },
+                    {
+                        q: "How are public healthcare services funded?",
+                        options: ["Private donations", "Bank loans", "Tax revenues collected from citizens", "Corporate sponsorships"],
+                        correct: 2,
+                        exp: "Government-run public services are funded by taxpayer money collected from the public."
+                    },
+                    {
+                        q: "Which disease is directly spread by drinking contaminated water?",
+                        options: ["Malaria", "Typhoid", "Tuberculosis", "Scurvy"],
+                        correct: 1,
+                        exp: "Typhoid is a waterborne bacterial infection spread through contaminated water or food."
+                    },
+                    {
+                        q: "What is the program designed to deliver piped drinking water to all Telangana households?",
+                        options: ["Arogyasri", "Rythu Bandhu", "Mission Bhagiratha", "Mission Kakatiya"],
+                        correct: 2,
+                        exp: "Mission Bhagiratha is Telangana's clean water program to supply treated tap water to rural homes."
+                    }
+                ],
+                flashcards: [
+                    { q: "Is health a fundamental right?", a: "Yes, included under the Right to Life in Article 21 of the Constitution." },
+                    { q: "What is a PHC?", a: "Primary Health Center, a village government clinic." },
+                    { q: "How are public hospitals paid for?", a: "By public taxes collected by the government." },
+                    { q: "Give an example of waterborne disease.", a: "Cholera, typhoid, or dysentery." },
+                    { q: "What is preventative healthcare?", a: "Preventing illness through vaccinations, clean water, and sanitation." }
+                ]
+            }
+        ]
+    },
+    {
+        chapterNum: 10,
+        title: "Landlords and Tenants under the Nizam and the British",
+        summary: "Historical study of land systems, Zamindari, Ryotwari, Nizam's deshmukhs, and peasant revolts.",
+        description: "Explore the historical land systems, high taxes, and peasant struggles in colonial Telangana.",
+        topics: [
+            {
+                topicNum: 1,
+                title: "Land Revenue Systems and Peasant Rebellions",
+                youtubeId: "32Y2V23t6V0",
+                explanation: `
+                    <h3>1. Colonial Land Revenue Systems</h3>
+                    <p>During the colonial era, the British and the Nizam introduced new land laws. The <strong>Zamindari System</strong> appointed landlords to collect taxes from entire districts. The <span class="underlined-concept">Ryotwari System</span> collected taxes directly from individual peasants (Ryots), though tax rates remained high.</p>
+
+                    <h3>2. Oppression by Deshmukhs & Doras</h3>
+                    <p>In the Hyderabad State under the Nizam, powerful local landlords called <strong>Deshmukhs</strong> or <strong>Doras</strong> controlled hundreds of villages. They acted as revenue collectors, judges, and security, forcing peasants to perform <span class="underlined-concept">Vetti (forced labor)</span> without pay.</p>
+
+                    <h3>3. Peasant Resistances</h3>
+                    <p>Oppressed by high taxes, debt, and eviction, peasants organized revolts. The historic <strong>Telangana Peasant Armed Struggle</strong> (1946-1951) was organized by rural communities to fight against the oppression of the Nizam's landlords (Doras), reclaiming land for local farmers.</p>
+
+                    <div class="underlined-explanations-card">
+                        <h4><i class="fa-solid fa-pen-nib"></i> Explanations of Underlined Concepts</h4>
+                        <ul class="underlined-list">
+                            <li><strong>Ryotwari System</strong>: Land tax system where the government registered land ownership directly to the farmer (Ryot) to collect taxes.</li>
+                            <li><strong>Vetti (forced labor)</strong>: An exploitative practice where peasants were forced to work on the landlord's estate for free.</li>
+                        </ul>
+                    </div>
+
+                    <div class="vs-container">
+                        <div class="vs-title"><i class="fa-solid fa-circle-nodes"></i> Concept Check: Zamindari vs. Ryotwari</div>
+                        <div class="vs-content">
+                            In the <span class="vs-highlight">Zamindari System</span>, landlords acted as middlemen, owning the land and taxing peasants, while in the <span class="vs-highlight">Ryotwari System</span>, the state taxed individual peasants directly, bypassing intermediary landlords.
+                        </div>
+                    </div>
+
+                    <div class="blooms-taxonomy-card">
+                        <div class="blooms-header">
+                            <div class="blooms-title"><i class="fa-solid fa-graduation-cap"></i> Bloom's Taxonomy Challenge Zone</div>
+                        </div>
+                        <div class="blooms-question-item">
+                            <div class="blooms-q-meta"><span class="blooms-level-badge">Level 4: Analyzing</span></div>
+                            <div class="blooms-q-text">Why did the colonial tax systems push peasants into permanent debt cycles?</div>
+                            <div class="blooms-a-text"><strong>Answer:</strong> Taxes had to be paid in cash, forcing farmers to borrow money from moneylenders who charged high interest and seized land when loans failed.</div>
+                        </div>
+                    </div>
+                `,
+                remember: "Nizam's landlords (Doras) enforced forced unpaid labor (Vetti), which triggered the Telangana Peasant Armed Struggle in 1946.",
+                vocab: [
+                    { word: "Zamindar", meaning: "A landlord appointed to collect land revenues for the government." },
+                    { word: "Ryot", meaning: "An individual farmer or peasant cultivator." },
+                    { word: "Dora", meaning: "A powerful landlord in Telangana under the Nizam." },
+                    { word: "Vetti", meaning: "Forced, unpaid labor extracted from peasants by landlords." },
+                    { word: "Ryotwari System", meaning: "A direct land revenue settlement system between the state and the farmer." }
+                ],
+                summary: [
+                    "Zamindars acted as tax collectors and landlords in colonial British India.",
+                    "The Ryotwari system created direct tax settlements between the state and peasants.",
+                    "Telangana Doras controlled village resources and extracted forced labor (Vetti).",
+                    "High taxes and high interest rates pushed many farmers into debt and land loss.",
+                    "The Telangana Peasant Armed Struggle (1946-1951) fought against the Doras and Nizam rule."
+                ],
+                funFact: "Some Telangana Doras lived in massive fortified mansions called 'Gadi' that had thick stone walls to defend against peasant attacks during revolts!",
+                realLife: "Modern land registration systems in India, like Telangana's Dharani portal, digitize ownership records to protect farmers from land grabbing.",
+                quiz: [
+                    {
+                        q: "Which land system collected tax directly from the cultivator (Ryot)?",
+                        options: ["Zamindari System", "Ryotwari System", "Mahalwari System", "Jagirdari System"],
+                        correct: 1,
+                        exp: "The Ryotwari system settled taxes directly with the farmer, bypassing landlord middlemen."
+                    },
+                    {
+                        q: "What were the powerful landlords in Telangana under the Nizam called?",
+                        options: ["Zamindars", "Doras / Deshmukhs", "Ryots", "Subedars"],
+                        correct: 1,
+                        exp: "Local landlords in Hyderabad State were known as Doras or Deshmukhs, controlling entire villages."
+                    },
+                    {
+                        q: "What was the system of forced, unpaid labor extracted by Telangana landlords called?",
+                        options: ["Ryotwari", "Podu", "Vetti", "Dharani"],
+                        correct: 2,
+                        exp: "Vetti was the exploitative system of forced, unpaid labor imposed on low-caste peasants by Doras."
+                    },
+                    {
+                        q: "In which year did the historic Telangana Peasant Armed Struggle begin?",
+                        options: ["1919", "1942", "1946", "1957"],
+                        correct: 2,
+                        exp: "The armed rebellion against the oppressive Doras and Nizam rule began in 1946."
+                    },
+                    {
+                        q: "Why did farmers lose land under colonial tax rules?",
+                        options: ["They wanted to move to cities", "They traded land for gold", "High cash taxes forced them to borrow from moneylenders who seized land", "Tractors were too expensive"],
+                        correct: 2,
+                        exp: "Colonial taxes had to be paid in cash regardless of crop failure, forcing peasants into debt cycles."
+                    }
+                ],
+                flashcards: [
+                    { q: "What is a Ryot?", a: "A peasant farmer." },
+                    { q: "What is the Zamindari system?", a: "Tax collection system where landlords collected revenues for the state." },
+                    { q: "What is a Gadi?", a: "The fortified stone mansion of a Telangana Dora." },
+                    { q: "What does Vetti mean?", a: "Forced unpaid labor extracted from peasants." },
+                    { q: "When was the Telangana Peasant Struggle?", a: "From 1946 to 1951, fighting landlord oppression." }
+                ]
+            }
+        ]
     }
+];
 
-    const resize = () => {
-      bgCanvas.width = window.innerWidth;
-      bgCanvas.height = window.innerHeight;
-    };
+function getActiveChapter() {
+    return syllabusData[activeChapterIdx];
+}
+
+function getActiveTopic() {
+    return getActiveChapter().topics[activeTopicIdx];
+}
+
+/* ==========================================================================
+   NAVIGATION ENGINE & UI SETUP
+   ========================================================================== */
+window.addEventListener("DOMContentLoaded", () => {
+    loadProgress();
+    initPreloader();
+    populateChapterDropdown();
+    selectChapter(0);
+    renderSidebarAccordion();
+    renderDashboardChapters();
+    registerEventHandlers();
+});
+
+// 1. Magical preloader/gateway particle canvas
+function initPreloader() {
+    const canvas = document.getElementById("magic-canvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Resize canvas
+    function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
     window.addEventListener("resize", resize);
     resize();
 
-    const draw = () => {
-      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
-      const w = bgCanvas.width;
-      const h = bgCanvas.height;
+    // Create particles
+    const particles = [];
+    for(let i=0; i<85; i++) {
+        particles.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 3 + 1,
+            d: Math.random() * 50 + 10,
+            vy: Math.random() * 0.5 - 0.25,
+            vx: Math.random() * 0.5 - 0.25,
+            color: Math.random() > 0.5 ? "rgba(212, 175, 55, 0.45)" : "rgba(6, 182, 214, 0.3)"
+        });
+    }
 
-      // 1. Theme-adapted Linear Gradient
-      const spaceGrad = bgCtx.createLinearGradient(0, 0, 0, h);
-      if (this.theme === "dark") {
-        spaceGrad.addColorStop(0, "#040712");   // Absolute dark
-        spaceGrad.addColorStop(0.5, "#0b1122"); // Deep space navy
-        spaceGrad.addColorStop(1, "#170c2a");   // Soft cosmic violet
-      } else {
-        spaceGrad.addColorStop(0, "#faf8f4");   // Warm parchment light
-        spaceGrad.addColorStop(0.5, "#f6eedf"); // Deeper parchment
-        spaceGrad.addColorStop(1, "#ebdcb9");   // Celestial golden cream
-      }
-      bgCtx.fillStyle = spaceGrad;
-      bgCtx.fillRect(0, 0, w, h);
+    // Mouse interaction trail
+    let mouse = { x: null, y: null };
+    window.addEventListener("mousemove", (e) => {
+        mouse.x = e.clientX;
+        mouse.y = e.clientY;
+    });
 
-      // 2. Cosmic Nebula Clouds (in dark) or Golden Coordinate Clouds (in light)
-      const drawNebula = (cx, cy, r, color1, color2) => {
-        const grad = bgCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        grad.addColorStop(0, color1);
-        grad.addColorStop(1, color2);
-        bgCtx.fillStyle = grad;
-        bgCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      };
-      
-      const nebRadius = Math.min(w, h) * 0.6;
-      if (this.theme === "dark") {
-        drawNebula(w * 0.2, h * 0.4, nebRadius, "rgba(22, 60, 71, 0.18)", "rgba(22, 60, 71, 0)");
-        drawNebula(w * 0.8, h * 0.3, nebRadius * 0.8, "rgba(117, 72, 33, 0.12)", "rgba(117, 72, 33, 0)");
-      } else {
-        drawNebula(w * 0.2, h * 0.4, nebRadius, "rgba(176, 129, 63, 0.05)", "rgba(176, 129, 63, 0)");
-        drawNebula(w * 0.8, h * 0.3, nebRadius * 0.8, "rgba(176, 129, 63, 0.03)", "rgba(176, 129, 63, 0)");
-      }
-
-      // 3. Twinkling Stars (dark mode) or Floating coordinates dots (light mode)
-      stars.forEach(s => {
-        s.alpha += s.twinkleSpeed;
-        if (s.alpha > 1 || s.alpha < 0.1) {
-          s.twinkleSpeed = -s.twinkleSpeed;
-        }
-        const currentAlpha = Math.max(0.1, Math.min(1, s.alpha));
-        if (this.theme === "dark") {
-          bgCtx.fillStyle = `rgba(255, 255, 255, ${currentAlpha * 0.8})`;
-        } else {
-          bgCtx.fillStyle = `rgba(176, 129, 63, ${currentAlpha * 0.25})`;
-        }
-        bgCtx.beginPath();
-        bgCtx.arc(s.x * w, s.y * h, s.size, 0, 2 * Math.PI);
-        bgCtx.fill();
-      });
-
-      // 4. Rotating Planet Earth (Top-Right)
-      const ex = w - 160;
-      const ey = 220;
-      const er = 65;
-
-      if (w > 768) { // Only draw detailed Earth on desktop/tablet to avoid overlapping text
-        // Earth coordinate orbital ring
-        bgCtx.strokeStyle = this.theme === "dark" ? "rgba(135, 206, 250, 0.08)" : "rgba(176, 129, 63, 0.1)";
-        bgCtx.lineWidth = 1;
-        bgCtx.beginPath();
-        bgCtx.arc(ex, ey, er * 1.35, 0, 2 * Math.PI);
-        bgCtx.stroke();
-        bgCtx.setLineDash([2, 6]);
-        bgCtx.beginPath();
-        bgCtx.ellipse(ex, ey, er * 1.7, er * 0.45, 0.25, 0, 2 * Math.PI);
-        bgCtx.stroke();
-        bgCtx.setLineDash([]);
-
-        // Earth ocean sphere base
-        const oceanGrad = bgCtx.createRadialGradient(ex - er * 0.4, ey - er * 0.4, er * 0.1, ex, ey, er);
-        if (this.theme === "dark") {
-          oceanGrad.addColorStop(0, "#2b6cb0");  // Sunlit ocean
-          oceanGrad.addColorStop(0.5, "#1a365d"); // Deep blue
-          oceanGrad.addColorStop(1, "#0a1122");   // Abyssal edge
-        } else {
-          oceanGrad.addColorStop(0, "#4299e1");
-          oceanGrad.addColorStop(0.6, "#2b6cb0");
-          oceanGrad.addColorStop(1, "#1a539b");
-        }
-        bgCtx.fillStyle = oceanGrad;
-        bgCtx.beginPath();
-        bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
-        bgCtx.fill();
-
-        // Draw spinning continents (clipped within sphere bounds)
-        bgCtx.save();
-        bgCtx.beginPath();
-        bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
-        bgCtx.clip();
-
-        const mapWidth = er * 5.2; // total map width scroll cycle
-        const spinOffset = (t * 0.14) % mapWidth;
-
-        const drawLand = (offsetX) => {
-          // Antarctica
-          bgCtx.fillStyle = this.theme === "dark" ? "#64748b" : "#e2e8f0"; // icy glacier white
-          bgCtx.beginPath();
-          bgCtx.rect(offsetX - mapWidth, ey + er * 0.78, mapWidth * 2, er * 0.22);
-          bgCtx.fill();
-
-          // Green vegetation base
-          bgCtx.fillStyle = this.theme === "dark" ? "#1e4d2b" : "#3b8e51";
-
-          // Americas
-          bgCtx.beginPath();
-          bgCtx.moveTo(offsetX + er * 0.1, ey - er * 0.7);
-          bgCtx.lineTo(offsetX + er * 0.4, ey - er * 0.7);
-          bgCtx.quadraticCurveTo(offsetX + er * 0.55, ey - er * 0.55, offsetX + er * 0.6, ey - er * 0.4);
-          bgCtx.lineTo(offsetX + er * 0.75, ey - er * 0.2);
-          bgCtx.lineTo(offsetX + er * 0.6, ey - er * 0.1);
-          bgCtx.lineTo(offsetX + er * 0.35, ey - er * 0.05);
-          bgCtx.lineTo(offsetX + er * 0.4, ey + er * 0.1);
-          bgCtx.lineTo(offsetX + er * 0.65, ey + er * 0.35);
-          bgCtx.lineTo(offsetX + er * 0.58, ey + er * 0.65);
-          bgCtx.lineTo(offsetX + er * 0.38, ey + er * 0.78);
-          bgCtx.lineTo(offsetX + er * 0.28, ey + er * 0.4);
-          bgCtx.lineTo(offsetX + er * 0.15, ey + er * 0.1);
-          bgCtx.closePath();
-          bgCtx.fill();
-
-          // Land details (desert/sand mountain details)
-          bgCtx.fillStyle = this.theme === "dark" ? "#5c4015" : "#c49a55";
-          bgCtx.beginPath();
-          bgCtx.moveTo(offsetX + er * 0.25, ey - er * 0.5);
-          bgCtx.lineTo(offsetX + er * 0.45, ey - er * 0.4);
-          bgCtx.lineTo(offsetX + er * 0.3, ey - er * 0.1);
-          bgCtx.closePath();
-          bgCtx.fill();
-
-          // Africa, Europe & Asia
-          bgCtx.fillStyle = this.theme === "dark" ? "#1b4425" : "#429f5b";
-          bgCtx.beginPath();
-          bgCtx.moveTo(offsetX + er * 1.8, ey - er * 0.78);
-          bgCtx.lineTo(offsetX + er * 3.7, ey - er * 0.78);
-          bgCtx.lineTo(offsetX + er * 3.85, ey - er * 0.5);
-          bgCtx.lineTo(offsetX + er * 3.55, ey - er * 0.15); // India
-          bgCtx.lineTo(offsetX + er * 3.2, ey - er * 0.1);
-          bgCtx.lineTo(offsetX + er * 2.8, ey - er * 0.3); // Arabia
-          bgCtx.lineTo(offsetX + er * 2.6, ey - er * 0.1);
-          bgCtx.lineTo(offsetX + er * 2.85, ey + er * 0.05); // Somalia
-          bgCtx.lineTo(offsetX + er * 2.75, ey + er * 0.4);
-          bgCtx.lineTo(offsetX + er * 2.45, ey + er * 0.75); // South Africa
-          bgCtx.lineTo(offsetX + er * 2.2, ey + er * 0.5);
-          bgCtx.lineTo(offsetX + er * 1.95, ey + er * 0.1); // West Africa
-          bgCtx.lineTo(offsetX + er * 1.9, ey - er * 0.35); // Spain/Med
-          bgCtx.closePath();
-          bgCtx.fill();
-
-          // Sahara/Gobi Desert details
-          bgCtx.fillStyle = this.theme === "dark" ? "#6b501f" : "#d8b26f";
-          bgCtx.beginPath();
-          bgCtx.moveTo(offsetX + er * 2.1, ey - er * 0.3);
-          bgCtx.lineTo(offsetX + er * 2.7, ey - er * 0.25);
-          bgCtx.lineTo(offsetX + er * 2.6, ey + er * 0.1);
-          bgCtx.lineTo(offsetX + er * 2.1, ey + er * 0.05);
-          bgCtx.closePath();
-          bgCtx.fill();
-
-          // Australia
-          bgCtx.fillStyle = this.theme === "dark" ? "#1e4d2b" : "#429f5b";
-          bgCtx.beginPath();
-          bgCtx.arc(offsetX + er * 4.15, ey + er * 0.38, er * 0.19, 0, 2 * Math.PI);
-          bgCtx.fill();
-
-          // Outback Desert detail
-          bgCtx.fillStyle = this.theme === "dark" ? "#6b501f" : "#d8b26f";
-          bgCtx.beginPath();
-          bgCtx.arc(offsetX + er * 4.15, ey + er * 0.38, er * 0.12, 0, 2 * Math.PI);
-          bgCtx.fill();
-        };
-
-        drawLand(ex - spinOffset);
-        drawLand(ex - spinOffset + mapWidth);
-        drawLand(ex - spinOffset - mapWidth);
-
-        // Draw 3D rotating clouds layer (parallax)
-        const cloudOffset = (t * 0.22) % mapWidth;
-        const drawClouds = (offsetX) => {
-          bgCtx.fillStyle = "rgba(255, 255, 255, 0.4)";
-          // Cloud system 1: Northern swirl
-          bgCtx.beginPath();
-          bgCtx.arc(offsetX + er * 0.8, ey - er * 0.4, er * 0.18, 0, 2 * Math.PI);
-          bgCtx.arc(offsetX + er * 1.0, ey - er * 0.45, er * 0.15, 0, 2 * Math.PI);
-          bgCtx.fill();
-
-          // Cloud system 2: Equatorial belt
-          bgCtx.beginPath();
-          bgCtx.rect(offsetX + er * 1.5, ey - er * 0.08, er * 0.8, er * 0.16);
-          bgCtx.rect(offsetX + er * 3.6, ey + er * 0.05, er * 0.7, er * 0.14);
-          bgCtx.fill();
-
-          // Cloud system 3: Southern swirl
-          bgCtx.beginPath();
-          bgCtx.arc(offsetX + er * 0.4, ey + er * 0.4, er * 0.18, 0, 2 * Math.PI);
-          bgCtx.arc(offsetX + er * 2.8, ey + er * 0.45, er * 0.15, 0, 2 * Math.PI);
-          bgCtx.fill();
-        };
-        drawClouds(ex - cloudOffset);
-        drawClouds(ex - cloudOffset + mapWidth);
-        drawClouds(ex - cloudOffset - mapWidth);
-
-        // Draw 3D rotating latitude/longitude grid lines overlay (subtle)
-        bgCtx.strokeStyle = this.theme === "dark" ? "rgba(255, 255, 255, 0.12)" : "rgba(0, 0, 0, 0.07)";
-        bgCtx.lineWidth = 0.8;
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // Latitudes
-        for (let lat = -60; lat <= 60; lat += 30) {
-          const latY = ey + Math.sin(lat * Math.PI / 180) * er;
-          const latW = Math.cos(lat * Math.PI / 180) * er;
-          bgCtx.beginPath();
-          bgCtx.moveTo(ex - latW, latY);
-          bgCtx.lineTo(ex + latW, latY);
-          bgCtx.stroke();
-        }
-
-        // Longitudes
-        for (let lon = 0; lon < 180; lon += 45) {
-          const angle = ((lon + t * 0.25) % 180) * Math.PI / 180;
-          const latW = Math.sin(angle) * er;
-          bgCtx.beginPath();
-          bgCtx.ellipse(ex, ey, Math.abs(latW), er, 0, 0, 2 * Math.PI);
-          bgCtx.stroke();
-        }
-
-        // 3D Spherical Shadow overlay (creates high quality realistic 3D orb depth)
-        const shadowGrad = bgCtx.createRadialGradient(ex - er * 0.4, ey - er * 0.4, er * 0.2, ex, ey, er);
-        shadowGrad.addColorStop(0, "rgba(0, 0, 0, 0)");
-        shadowGrad.addColorStop(0.5, "rgba(0, 0, 0, 0.35)");
-        shadowGrad.addColorStop(1, "rgba(0, 0, 0, 0.88)");
-        bgCtx.fillStyle = shadowGrad;
-        bgCtx.beginPath();
-        bgCtx.arc(ex, ey, er, 0, 2 * Math.PI);
-        bgCtx.fill();
-
-        bgCtx.restore();
-
-        // Atmosphere outer limb glow
-        const atmGrad = bgCtx.createRadialGradient(ex, ey, er - 2, ex, ey, er * 1.25);
-        if (this.theme === "dark") {
-          atmGrad.addColorStop(0, "rgba(100, 190, 255, 0.35)");
-          atmGrad.addColorStop(0.2, "rgba(100, 190, 255, 0.15)");
-          atmGrad.addColorStop(1, "rgba(100, 190, 255, 0)");
-        } else {
-          atmGrad.addColorStop(0, "rgba(74, 144, 226, 0.25)");
-          atmGrad.addColorStop(0.3, "rgba(74, 144, 226, 0.15)");
-          atmGrad.addColorStop(1, "rgba(74, 144, 226, 0)");
-        }
-        bgCtx.fillStyle = atmGrad;
-        bgCtx.beginPath();
-        bgCtx.arc(ex, ey, er * 1.25, 0, 2 * Math.PI);
-        bgCtx.fill();
-      }
-
-      // 5. Draw Small Orange Mars-Like Planet (Bottom-Left)
-      if (w > 992) {
-        const px = 140;
-        const py = h - 160;
-        const pr = 35;
-
-        const pGrad = bgCtx.createRadialGradient(px - pr * 0.2, py - pr * 0.2, 2, px, py, pr);
-        if (this.theme === "dark") {
-          pGrad.addColorStop(0, "#be523c");
-          pGrad.addColorStop(1, "#49130d");
-        } else {
-          pGrad.addColorStop(0, "#df7c67");
-          pGrad.addColorStop(1, "#8e3523");
-        }
-        bgCtx.fillStyle = pGrad;
-        bgCtx.beginPath();
-        bgCtx.arc(px, py, pr, 0, 2 * Math.PI);
-        bgCtx.fill();
-
-        const pShadow = bgCtx.createLinearGradient(px - pr, py, px + pr, py);
-        pShadow.addColorStop(0, "rgba(0, 0, 0, 0)");
-        pShadow.addColorStop(1, this.theme === "dark" ? "rgba(0, 0, 0, 0.72)" : "rgba(0, 0, 0, 0.28)");
-        bgCtx.fillStyle = pShadow;
-        bgCtx.beginPath();
-        bgCtx.arc(px, py, pr, 0, 2 * Math.PI);
-        bgCtx.fill();
-      }
-
-      t++;
-      requestAnimationFrame(draw);
-    };
-
-    draw();
-  }
-
-  renderSidebar() {
-    const container = document.getElementById("topic-sidebar-menu");
-    if (!container) return;
-    container.innerHTML = "";
-    
-    topicsData.forEach((t, index) => {
-      const li = document.createElement("li");
-      li.className = "topic-item";
-      li.innerHTML = `
-        <button class="topic-btn ${index === this.activeTopic ? 'active' : ''}" onclick="app.loadTopic(${index})">
-          <span class="badge">${index + 1}</span>
-          ${t.title}
-        </button>
-      `;
-      container.appendChild(li);
-    });
-  }
-
-  loadTopic(index) {
-    // Stop any running animations
-    this.stopWatchAnimation();
-    
-    this.activeTopic = index;
-    this.flowStep = "read";
-    
-    // Reset indicators
-    this.flashcardIndex = 0;
-    this.flashcardFlipped = false;
-    this.activeMiniQuizQ = 0;
-    this.miniQuizAnswers = [];
-    
-    // Update sidebar layout
-    this.renderSidebar();
-
-    // Toggle main viewport view
-    document.getElementById("topic-section").style.display = "block";
-    document.getElementById("final-test-section").style.display = "none";
-    document.getElementById("sidebar-final-test-btn").classList.remove("active");
-
-    // Populate metadata
-    document.getElementById("topic-meta-display").innerText = `Topic ${index + 1} of ${topicsData.length}`;
-    document.getElementById("topic-title-display").innerText = topicsData[index].title;
-    document.getElementById("current-active-topic-num").innerText = index + 1;
-
-    // Load content views
-    this.renderReadTab();
-    this.renderReviseTab();
-    
-    // Set tab active
-    this.setFlowStep("read");
-  }
-
-  setFlowStep(step) {
-    this.stopWatchAnimation();
-    this.flowStep = step;
-
-    // Highlight active tab
-    const tabs = ["read", "watch", "explore", "practice", "revise"];
-    tabs.forEach(t => {
-      const btn = document.getElementById(`tab-${t}`);
-      const view = document.getElementById(`view-${t}`);
-      if (btn) btn.classList.remove("active");
-      if (view) view.classList.remove("active");
-    });
-
-    const activeBtn = document.getElementById(`tab-${step}`);
-    const activeView = document.getElementById(`view-${step}`);
-    if (activeBtn) activeBtn.classList.add("active");
-    if (activeView) activeView.classList.add("active");
-
-    // Load visual specific parameters
-    if (step === "watch") {
-      this.initWatchAnimation();
-    } else if (step === "explore") {
-      this.initExploreSimulation();
-    } else if (step === "practice") {
-      this.initMiniQuiz();
-    } else if (step === "revise") {
-      this.renderFlashcard();
-    }
-
-    // Update bottom CTA banner text
-    const ctaTitle = document.getElementById("next-step-title-display");
-    const ctaBtn = document.getElementById("next-step-action-btn");
-    
-    if (step === "read") {
-      ctaTitle.innerText = "Proceed to Watch Animation";
-      ctaBtn.innerText = "Next: Watch";
-    } else if (step === "watch") {
-      ctaTitle.innerText = "Proceed to Interactive Sandbox";
-      ctaBtn.innerText = "Next: Explore";
-    } else if (step === "explore") {
-      ctaTitle.innerText = "Proceed to Mini Quiz Practice";
-      ctaBtn.innerText = "Next: Practice";
-    } else if (step === "practice") {
-      ctaTitle.innerText = "Proceed to Topic Revision";
-      ctaBtn.innerText = "Next: Revise";
-    } else if (step === "revise") {
-      if (this.activeTopic < topicsData.length - 1) {
-        ctaTitle.innerText = "Proceed to Next Topic Lesson";
-        ctaBtn.innerText = "Next Lesson";
-      } else {
-        ctaTitle.innerText = "Congratulations! Take the Final Test";
-        ctaBtn.innerText = "Start Final Test";
-      }
-    }
-  }
-
-  advanceFlowStep() {
-    if (this.flowStep === "read") this.setFlowStep("watch");
-    else if (this.flowStep === "watch") this.setFlowStep("explore");
-    else if (this.flowStep === "explore") this.setFlowStep("practice");
-    else if (this.flowStep === "practice") this.setFlowStep("revise");
-    else if (this.flowStep === "revise") {
-      if (this.activeTopic < topicsData.length - 1) {
-        this.loadTopic(this.activeTopic + 1);
-      } else {
-        this.showFinalTestIntro();
-      }
-    }
-  }
-
-  // --- TAB 1: READ RENDERING ---
-  renderReadTab() {
-    const data = topicsData[this.activeTopic];
-    document.getElementById("read-text-container").innerHTML = data.readText;
-    document.getElementById("remember-text").innerText = data.remember;
-    document.getElementById("fun-fact-text").innerText = data.funFact;
-    document.getElementById("real-life-text").innerText = data.realLife;
-
-    const vocabContainer = document.getElementById("vocab-container");
-    vocabContainer.innerHTML = "";
-    data.vocab.forEach(v => {
-      const card = document.createElement("div");
-      card.className = "vocab-card";
-      card.innerHTML = `
-        <div class="vocab-word">${v.word}</div>
-        <div class="vocab-definition">${v.definition}</div>
-      `;
-      vocabContainer.appendChild(card);
-    });
-  }
-
-  // --- TAB 2: WATCH ANIMATIONS (CANVAS LOGIC) ---
-  initWatchAnimation() {
-    this.watchFrame = 0;
-    this.watchPlaying = true;
-    this.animateWatch();
-  }
-
-  toggleWatchAnimation() {
-    this.watchPlaying = !this.watchPlaying;
-    if (this.watchPlaying) this.animateWatch();
-  }
-
-  resetWatchAnimation() {
-    this.watchFrame = 0;
-    if (!this.watchPlaying) {
-      this.watchPlaying = true;
-      this.animateWatch();
-    }
-  }
-
-  stopWatchAnimation() {
-    this.watchPlaying = false;
-    if (this.watchAnimId) {
-      cancelAnimationFrame(this.watchAnimId);
-      this.watchAnimId = null;
-    }
-  }
-
-  animateWatch() {
-    if (!this.watchPlaying) return;
-    this.renderWatchFrame();
-    this.watchFrame++;
-    this.watchAnimId = requestAnimationFrame(() => this.animateWatch());
-  }
-
-  renderWatchFrame() {
-    const ctx = this.watchCtx;
-    const w = this.watchCanvas.width;
-    const h = this.watchCanvas.height;
-    ctx.clearRect(0, 0, w, h);
-
-    // Theme-adapted background
-    ctx.fillStyle = this.theme === "dark" ? "#0c121e" : "#fbf9f4";
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.save();
-    
-    // Grid overlay background
-    ctx.strokeStyle = this.theme === "dark" ? "rgba(176, 129, 63, 0.05)" : "rgba(176, 129, 63, 0.12)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 30) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 0; y < h; y += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
-    // Add Srivardhan branding text in canvas background
-    ctx.fillStyle = this.theme === "dark" ? "rgba(255, 255, 255, 0.03)" : "rgba(176, 129, 63, 0.06)";
-    ctx.font = "italic 700 36px 'Cormorant Garamond'";
-    ctx.textAlign = "center";
-    ctx.fillText("SRIVARDHAN", w / 2, h - 30);
-
-    // Delegate rendering to multi-chapter routing method
-    this.drawWatchContent(this.activeChapter, this.activeTopic, ctx, w, h);
-
-    ctx.restore();
-  }
-
-  drawTopic1Watch(ctx, w, h) {
-    // Topic 1: Globe to Flat Map Projection animation
-    const cx = w / 2;
-    const cy = h / 2;
-    const r = 100;
-    
-    const progress = (this.watchFrame % 300) / 300; // loop animation
-    
-    ctx.lineWidth = 2;
-
-    if (progress < 0.4) {
-      // Phase 1: Spinning 3D Globe
-      const rotateAngle = progress * 10 * Math.PI;
-
-      // Draw sphere shadow outline
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-      ctx.fillStyle = "#162237";
-      ctx.fill();
-      ctx.strokeStyle = "#b0813f";
-      ctx.stroke();
-
-      // Latitudes
-      for (let offset = -80; offset <= 80; offset += 30) {
-        const rad = Math.asin(offset / r);
-        const ellipseH = r * Math.cos(rad);
-        ctx.strokeStyle = "rgba(176, 129, 63, 0.3)";
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + offset, r * Math.cos(rad), 5, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-      }
-
-      // Longitudes (spinning)
-      for (let i = 0; i < 6; i++) {
-        const angleOffset = (i * Math.PI / 3) + rotateAngle;
-        const width = r * Math.cos(angleOffset);
-        if (Math.sin(angleOffset) > 0) {
-          ctx.strokeStyle = "rgba(176, 129, 63, 0.4)";
-          ctx.beginPath();
-          ctx.ellipse(cx, cy, Math.abs(width), r, 0, -Math.PI/2, Math.PI/2);
-          ctx.stroke();
-        }
-      }
-
-      // Title tag
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("Spherical Earth (3D Globe)", cx, cy + r + 30);
-    } 
-    else if (progress >= 0.4 && progress < 0.8) {
-      // Phase 2: Stretching / Unwrapping
-      const transition = (progress - 0.4) / 0.4; // 0 to 1
-
-      const mapWidth = r * Math.PI * 2 * transition;
-      const mapHeight = r * 2;
-      const startX = cx - mapWidth / 2;
-      const startY = cy - mapHeight / 2;
-
-      // Cylindrical projection wrapping animation
-      ctx.strokeStyle = "#b0813f";
-      ctx.fillStyle = "#162237";
-      ctx.beginPath();
-      ctx.rect(startX, startY, mapWidth, mapHeight);
-      ctx.fill();
-      ctx.stroke();
-
-      // Grid lines drawing gradually
-      ctx.strokeStyle = "rgba(176, 129, 63, 0.4)";
-      const linesCount = 8;
-      for (let i = 0; i <= linesCount; i++) {
-        const lx = startX + (mapWidth * i / linesCount);
-        ctx.beginPath();
-        ctx.moveTo(lx, startY);
-        ctx.lineTo(lx, startY + mapHeight);
-        ctx.stroke();
-      }
-
-      // Horizontal lines
-      const hLines = 6;
-      for (let j = 0; j <= hLines; j++) {
-        const ly = startY + (mapHeight * j / hLines);
-        ctx.beginPath();
-        ctx.moveTo(startX, ly);
-        ctx.lineTo(startX + mapWidth, ly);
-        ctx.stroke();
-      }
-
-      // Title tag
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("Projecting Curved Grids to Flat Plane...", cx, cy + r + 30);
-    } 
-    else {
-      // Phase 3: Flat Map showing distortion (Greenland vs Africa size distortion demo)
-      const startX = cx - 180;
-      const startY = cy - 90;
-      const mw = 360;
-      const mh = 180;
-
-      // Draw flat map background
-      ctx.fillStyle = "#162237";
-      ctx.fillRect(startX, startY, mw, mh);
-      ctx.strokeStyle = "#b0813f";
-      ctx.strokeRect(startX, startY, mw, mh);
-
-      // Draw grid
-      ctx.strokeStyle = "rgba(176, 129, 63, 0.15)";
-      for (let i = 0; i <= 10; i++) {
-        ctx.beginPath();
-        ctx.moveTo(startX + (mw * i / 10), startY);
-        ctx.lineTo(startX + (mw * i / 10), startY + mh);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(startX, startY + (mh * i / 10));
-        ctx.lineTo(startX + mw, startY + (mh * i / 10));
-        ctx.stroke();
-      }
-
-      // Illustrate Greenland (top) and Africa (equator) size distortion
-      // Greenland (stetched large)
-      ctx.fillStyle = "rgba(192, 92, 70, 0.7)";
-      ctx.beginPath();
-      ctx.moveTo(startX + mw * 0.35, startY + 20);
-      ctx.lineTo(startX + mw * 0.45, startY + 15);
-      ctx.lineTo(startX + mw * 0.48, startY + 45);
-      ctx.lineTo(startX + mw * 0.38, startY + 50);
-      ctx.closePath();
-      ctx.fill();
-      
-      // Africa (realistic smaller comparative scale)
-      ctx.fillStyle = "rgba(47, 86, 71, 0.7)";
-      ctx.beginPath();
-      ctx.moveTo(startX + mw * 0.48, startY + 80);
-      ctx.lineTo(startX + mw * 0.58, startY + 82);
-      ctx.lineTo(startX + mw * 0.56, startY + 120);
-      ctx.lineTo(startX + mw * 0.52, startY + 140);
-      ctx.lineTo(startX + mw * 0.49, startY + 105);
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "11px 'Plus Jakarta Sans'";
-      ctx.textAlign = "left";
-      ctx.fillText("Greenland (Looks large due to stretching)", startX + 10, startY + 30);
-      ctx.fillText("Africa (Actually 14x larger in reality!)", startX + 10, startY + mh - 20);
-
-      // Title tag
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("Completed Flat Mercator Map (Distortion at Poles)", cx, cy + r + 30);
-    }
-  }
-
-  drawTopic2Watch(ctx, w, h) {
-    // Topic 2: Antique map scroll history
-    const progress = (this.watchFrame % 450) / 450;
-    const cx = w / 2;
-    const cy = h / 2;
-
-    if (progress < 0.33) {
-      // Sumerian Clay Map view
-      ctx.strokeStyle = "#c48f43";
-      ctx.lineWidth = 3;
-      
-      // Clay outline
-      ctx.fillStyle = "#8a6635";
-      ctx.beginPath();
-      ctx.moveTo(cx - 120, cy - 80);
-      ctx.quadraticCurveTo(cx - 130, cy + 10, cx - 110, cy + 90);
-      ctx.quadraticCurveTo(cx + 20, cy + 100, cx + 110, cy + 80);
-      ctx.quadraticCurveTo(cx + 120, cy - 30, cx + 100, cy - 90);
-      ctx.quadraticCurveTo(cx - 50, cy - 100, cx - 120, cy - 80);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      // Incised boundaries
-      ctx.strokeStyle = "#4d3618";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(cx - 80, cy - 30);
-      ctx.lineTo(cx + 80, cy - 30);
-      ctx.moveTo(cx - 40, cy + 40);
-      ctx.lineTo(cx + 60, cy + 40);
-      ctx.moveTo(cx, cy - 70);
-      ctx.lineTo(cx, cy + 70);
-      ctx.stroke();
-
-      // Cuneiform markings
-      ctx.fillStyle = "#2c1c08";
-      ctx.font = "14px monospace";
-      ctx.fillText("▼▼ ◀▶ ▼", cx - 50, cy - 50);
-      ctx.fillText("◀◀ ▼▼", cx + 20, cy + 20);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("Ancient Sumerian Clay Tablet (Tax Records, 2000 BC)", cx, cy + 130);
-    } 
-    else if (progress >= 0.33 && progress < 0.66) {
-      // Al-Idrisi Circular Map (South at top)
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#c48f43";
-      
-      // Circular map border
-      ctx.beginPath();
-      ctx.arc(cx, cy - 10, 90, 0, 2*Math.PI);
-      ctx.fillStyle = "#1d293d";
-      ctx.fill();
-      ctx.stroke();
-
-      // Outer Ocean Ring
-      ctx.beginPath();
-      ctx.arc(cx, cy - 10, 100, 0, 2*Math.PI);
-      ctx.stroke();
-
-      // Sketchy shapes of continents (inverted: Africa at top right, India/Asia top left)
-      ctx.fillStyle = "#3e5229";
-      ctx.beginPath();
-      ctx.arc(cx + 30, cy - 40, 40, 0, Math.PI * 1.5); // Africa
-      ctx.closePath();
-      ctx.fill();
-
-      ctx.fillStyle = "#2f5647";
-      ctx.beginPath();
-      ctx.moveTo(cx - 60, cy - 20);
-      ctx.quadraticCurveTo(cx - 20, cy + 30, cx - 10, cy - 30);
-      ctx.closePath();
-      ctx.fill();
-
-      // Labels in Arabic/Latin simulation style
-      ctx.fillStyle = "#c48f43";
-      ctx.font = "bold 12px serif";
-      ctx.fillText("SOUTH (TOP)", cx, cy - 115);
-      ctx.fillText("NORTH (BOTTOM)", cx, cy + 110);
-      ctx.fillStyle = "#fff";
-      ctx.fillText("AFRICA", cx + 20, cy - 40);
-      ctx.fillText("EUROPE", cx - 40, cy + 20);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("Al-Idrisi's World Map (South Oriented, 1154 AD)", cx, cy + 130);
-    } 
-    else {
-      // Mercator Navigation map grid
-      ctx.strokeStyle = "#b0813f";
-      ctx.strokeRect(cx - 150, cy - 90, 300, 180);
-      ctx.fillStyle = "#162237";
-      ctx.fillRect(cx - 150, cy - 90, 300, 180);
-
-      // Grid intersections are at exactly 90 degrees
-      ctx.strokeStyle = "rgba(176, 129, 63, 0.3)";
-      for (let x = cx - 120; x < cx + 150; x += 30) {
-        ctx.beginPath();
-        ctx.moveTo(x, cy - 90);
-        ctx.lineTo(x, cy + 90);
-        ctx.stroke();
-      }
-      for (let y = cy - 70; y < cy + 90; y += 28) {
-        ctx.beginPath();
-        ctx.moveTo(cx - 150, y);
-        ctx.lineTo(cx + 150, y);
-        ctx.stroke();
-      }
-
-      // Compass Rose
-      ctx.fillStyle = "#b0813f";
-      ctx.beginPath();
-      ctx.arc(cx + 90, cy + 30, 20, 0, 2 * Math.PI);
-      ctx.stroke();
-      // directional pointer
-      ctx.beginPath();
-      ctx.moveTo(cx + 90, cy + 15);
-      ctx.lineTo(cx + 95, cy + 30);
-      ctx.lineTo(cx + 90, cy + 25);
-      ctx.lineTo(cx + 85, cy + 30);
-      ctx.closePath();
-      ctx.fill();
-
-      // Navigation line (straight line crossing grid lines at equal angles)
-      ctx.strokeStyle = "#c05c46";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(cx - 110, cy + 40);
-      ctx.lineTo(cx + 40, cy - 50);
-      ctx.stroke();
-      
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "italic 11px 'Plus Jakarta Sans'";
-      ctx.fillText("Straight Rhumb Line (Constant Angle)", cx - 110, cy + 60);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("Gerardus Mercator's Navigation Grid (1569 AD)", cx, cy + 130);
-    }
-  }
-
-  drawTopic3Watch(ctx, w, h) {
-    // Topic 3: Triangulation measurement animation
-    const progress = (this.watchFrame % 300) / 300;
-    const cx = w / 2;
-    const cy = h / 2 + 20;
-
-    // Define 3 triangulation towers
-    const tA = { x: cx - 150, y: cy + 40, name: "St. Thomas Mount (Madras)" };
-    const tB = { x: cx + 150, y: cy + 40, name: "Base Station B" };
-    const tC = { x: cx, y: cy - 90, name: "Himalayan Peak Survey" };
-
-    // Draw terrain hills under towers
-    ctx.fillStyle = "#1b2a3a";
-    ctx.beginPath();
-    ctx.moveTo(tA.x - 50, tA.y + 40);
-    ctx.lineTo(tA.x, tA.y - 10);
-    ctx.lineTo(tA.x + 50, tA.y + 40);
-    
-    ctx.moveTo(tB.x - 50, tB.y + 40);
-    ctx.lineTo(tB.x, tB.y - 10);
-    ctx.lineTo(tB.x + 50, tB.y + 40);
-    
-    ctx.moveTo(tC.x - 80, tC.y + 170);
-    ctx.lineTo(tC.x, tC.y - 15);
-    ctx.lineTo(tC.x + 80, tC.y + 170);
-    ctx.fill();
-
-    // Draw little tower shapes on hills
-    [tA, tB, tC].forEach((t, index) => {
-      ctx.strokeStyle = "#c48f43";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(t.x - 8, t.y);
-      ctx.lineTo(t.x + 8, t.y);
-      ctx.lineTo(t.x, t.y - 25);
-      ctx.closePath();
-      ctx.stroke();
-
-      // Flashlight indicator beacon
-      ctx.fillStyle = (progress * 5 % 1 > 0.5) ? "#ff3333" : "#771111";
-      ctx.beginPath();
-      ctx.arc(t.x, t.y - 27, 3, 0, 2*Math.PI);
-      ctx.fill();
-    });
-
-    // Draw step-by-step surveying line connections
-    ctx.lineWidth = 3;
-    if (progress > 0.1) {
-      // Draw Baseline A -> B
-      ctx.strokeStyle = "#2f5647";
-      ctx.beginPath();
-      ctx.moveTo(tA.x, tA.y - 25);
-      ctx.lineTo(tB.x, tB.y - 25);
-      ctx.stroke();
-      ctx.fillStyle = "#2f5647";
-      ctx.font = "bold 11px 'Plus Jakarta Sans'";
-      ctx.fillText("1. Measured Baseline", cx, cy + 60);
-    }
-    if (progress > 0.4) {
-      // Draw Line A -> C
-      ctx.strokeStyle = "#b0813f";
-      ctx.beginPath();
-      ctx.moveTo(tA.x, tA.y - 25);
-      ctx.lineTo(tC.x, tC.y - 25);
-      ctx.stroke();
-      
-      // Draw angle arc at A
-      ctx.strokeStyle = "#ff9900";
-      ctx.beginPath();
-      ctx.arc(tA.x, tA.y - 25, 20, -0.4, 0);
-      ctx.stroke();
-      ctx.fillText("2. Angle A", tA.x + 30, tA.y - 20);
-    }
-    if (progress > 0.7) {
-      // Draw Line B -> C
-      ctx.strokeStyle = "#b0813f";
-      ctx.beginPath();
-      ctx.moveTo(tB.x, tB.y - 25);
-      ctx.lineTo(tC.x, tC.y - 25);
-      ctx.stroke();
-
-      // Draw angle arc at B
-      ctx.strokeStyle = "#ff9900";
-      ctx.beginPath();
-      ctx.arc(tB.x, tB.y - 25, 20, Math.PI, Math.PI + 0.4);
-      ctx.stroke();
-      ctx.fillText("3. Angle B", tB.x - 60, tB.y - 20);
-
-      // Fill calculated triangle
-      ctx.fillStyle = "rgba(176, 129, 63, 0.15)";
-      ctx.beginPath();
-      ctx.moveTo(tA.x, tA.y - 25);
-      ctx.lineTo(tB.x, tB.y - 25);
-      ctx.lineTo(tC.x, tC.y - 25);
-      ctx.closePath();
-      ctx.fill();
-      
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 11px 'Plus Jakarta Sans'";
-      ctx.fillText("4. Peak Position Calculated!", tC.x, tC.y - 45);
-    }
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 14px 'Plus Jakarta Sans'";
-    ctx.textAlign = "center";
-    ctx.fillText("The Great Trigonometrical Triangulation Method", cx, cy - 120);
-  }
-
-  drawTopic4Watch(ctx, w, h) {
-    // Topic 4: Thematic layers sliding down animation
-    const progress = (this.watchFrame % 300) / 300;
-    const cx = w / 2;
-    const cy = h / 2 - 20;
-
-    // We render isometric layers stacking
-    // Layer parameters
-    const layerW = 220;
-    const layerH = 100;
-    
-    // Renders 3 layers: 
-    // 0: Base outline Map (bottom)
-    // 1: Relief colors (middle)
-    // 2: Rainfall overlay (top)
-
-    const drawLayerOutline = (x, y, color, titleText) => {
-      ctx.strokeStyle = color;
-      ctx.fillStyle = "rgba(22, 34, 55, 0.85)";
-      ctx.lineWidth = 2;
-      
-      // Isometric diamond outline
-      ctx.beginPath();
-      ctx.moveTo(x, y - layerH / 2);
-      ctx.lineTo(x + layerW / 2, y);
-      ctx.lineTo(x, y + layerH / 2);
-      ctx.lineTo(x - layerW / 2, y);
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = color;
-      ctx.font = "bold 11px 'Plus Jakarta Sans'";
-      ctx.fillText(titleText, x + layerW/2 + 20, y + 5);
-    };
-
-    // Calculate vertical positions based on progress
-    // Layer 1 (Base Map) - Fixed at bottom
-    drawLayerOutline(cx, cy + 70, "#5c6b80", "1. Base Political Boundary");
-    
-    // Layer 2 (Relief) - slides down
-    let offset2 = 140 - (140 * Math.min(progress * 1.5, 1));
-    drawLayerOutline(cx, cy + 70 - offset2, "#b0813f", "2. Physical Relief Shading");
-
-    // Layer 3 (Rainfall) - slides down later
-    let offset3 = 280 - (280 * Math.min(Math.max(progress - 0.3, 0) * 1.5, 1));
-    drawLayerOutline(cx, cy + 70 - offset3, "#2f5647", "3. Rainfall Thematic Grid");
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 14px 'Plus Jakarta Sans'";
-    ctx.textAlign = "center";
-    ctx.fillText("How Thematic Maps Separate Data Layers", cx, cy - 100);
-  }
-
-  drawTopic5Watch(ctx, w, h) {
-    // Topic 5: Contour Line profile slicing animation
-    const progress = (this.watchFrame % 300) / 300;
-    const cx = w / 2;
-    const cy = h / 2 - 30;
-
-    // Draw 3D Hill shape (front profile)
-    ctx.strokeStyle = "#5c6b80";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx - 150, cy + 100);
-    ctx.quadraticCurveTo(cx - 80, cy + 100, cx - 40, cy - 10); // steep left slope
-    ctx.quadraticCurveTo(cx, cy - 80, cx + 20, cy - 80); // flat peak
-    ctx.quadraticCurveTo(cx + 80, cy - 80, cx + 150, cy + 100); // gentle right slope
-    ctx.stroke();
-
-    // Slicing planes at specific heights
-    const slices = [
-      { y: cy + 60, heightText: "100 meters" },
-      { y: cy + 10, heightText: "200 meters" },
-      { y: cy - 40, heightText: "300 meters" }
-    ];
-
-    slices.forEach((slice, index) => {
-      // Glow slicing line if animation progress is active
-      const isActive = progress > (index * 0.3);
-      ctx.strokeStyle = isActive ? "#c48f43" : "rgba(92, 107, 128, 0.3)";
-      ctx.lineWidth = isActive ? 2 : 1;
-
-      // Draw horizontal slicing plane
-      ctx.beginPath();
-      ctx.moveTo(cx - 160, slice.y);
-      ctx.lineTo(cx + 160, slice.y);
-      ctx.stroke();
-
-      ctx.fillStyle = isActive ? "#c48f43" : "rgba(92, 107, 128, 0.4)";
-      ctx.font = "10px monospace";
-      ctx.fillText(slice.heightText, cx + 170, slice.y + 3);
-
-      if (isActive) {
-        // Project contour markers downward onto baseline
-        ctx.strokeStyle = "rgba(192, 92, 70, 0.4)";
-        ctx.lineWidth = 1;
-        ctx.setLineDash([4, 4]);
-
-        // Left intersection point (approximate)
-        let leftX = cx - 110 + (index * 25);
-        ctx.beginPath();
-        ctx.moveTo(leftX, slice.y);
-        ctx.lineTo(leftX, cy + 130);
-        ctx.stroke();
-
-        // Right intersection point (approximate)
-        let rightX = cx + 115 - (index * 30);
-        ctx.beginPath();
-        ctx.moveTo(rightX, slice.y);
-        ctx.lineTo(rightX, cy + 130);
-        ctx.stroke();
-        
-        ctx.setLineDash([]); // reset
-
-        // Draw 2D projected contour circles at baseline
-        ctx.strokeStyle = "#c05c46";
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy + 130, (rightX - leftX)/2, 8, 0, 0, 2*Math.PI);
-        ctx.stroke();
-      }
-    });
-
-    // Draw baseline
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx - 170, cy + 130);
-    ctx.lineTo(cx + 170, cy + 130);
-    ctx.stroke();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 14px 'Plus Jakarta Sans'";
-    ctx.textAlign = "center";
-    ctx.fillText("Slicing a Hill to Project 2D Contour Rings", cx, cy - 100);
-    ctx.font = "11px 'Plus Jakarta Sans'";
-    ctx.fillText("2D Contour Map Projection (Bottom)", cx, cy + 160);
-  }
-
-  // --- TAB 3: EXPLORE SIMULATIONS (CANVAS SANDBOXES) ---
-  initExploreSimulation() {
-    const container = document.getElementById("sandbox-controls-container");
-    container.innerHTML = "";
-    
-    // Clear state
-    this.exploreState = {
-      topic: this.activeTopic,
-      canvas: this.exploreCanvas,
-      ctx: this.exploreCtx
-    };
-
-    const statusMsg = document.getElementById("explore-status-msg");
-    statusMsg.innerText = "";
-
-    // Set layout and render controls depending on active topic
-    switch (this.activeTopic) {
-      case 0:
-        // Topic 1 Slider: Satellite vs Map
-        this.exploreState.sliderX = this.exploreCanvas.width / 2;
-        this.exploreState.dragging = false;
-        container.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <p style="font-size:0.85rem; color:var(--text-secondary);">
-              <strong>Drag the slider</strong> across the screen to contrast the realistic satellite photograph (left) with the simplified cartographic map (right). Hover over points of interest to explore symbol logic.
-            </p>
-          </div>
-        `;
-        break;
-      case 1:
-        // Topic 2: Antique Map Viewer
-        this.exploreState.activeMap = 0; // 0 = Babylonian, 1 = Al-Idrisi, 2 = Mercator
-        container.innerHTML = `
-          <div style="display:flex; flex-direction:column; gap:0.5rem;">
-            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom: 0.5rem;">
-              <strong>Choose a historical map</strong> from the options below to study its cartographic layout, orientation, and social context:
-            </p>
-            <div style="display:flex; gap:0.5rem;">
-              <button class="watch-btn" onclick="app.setExploreMap(0)">Babylonian Tablet (600 BC)</button>
-              <button class="watch-btn" onclick="app.setExploreMap(1)">Al-Idrisi Map (1154 AD)</button>
-              <button class="watch-btn" onclick="app.setExploreMap(2)">Mercator Navigation (1569 AD)</button>
-            </div>
-          </div>
-        `;
-        break;
-      case 2:
-        // Topic 3: Triangulation survey
-        this.exploreState.surveyStep = 0; // 0=Madras baseline, 1=Bangalore, 2=Hyderabad, 3=Nagpur, 4=Completed
-        this.exploreState.dialVal = 0;
-        this.exploreState.triangles = [];
-        this.exploreState.measuredPoints = [];
-        this.renderTriangulationControls(container);
-        break;
-      case 3:
-        // Topic 4: Thematic Layers
-        this.exploreState.layers = {
-          relief: true,
-          rainfall: false,
-          population: false
-        };
-        container.innerHTML = `
-          <div style="display:flex; flex-direction:column; gap:0.5rem;">
-            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom: 0.5rem;">
-              <strong>Toggle thematic layers</strong> below to see spatial patterns on the Telangana map. Hover over districts to analyze local SCERT statistics.
-            </p>
-            <div style="display:flex; gap:1.5rem; flex-wrap: wrap;">
-              <label style="font-weight:600; font-size:0.9rem; cursor:pointer;">
-                <input type="checkbox" checked onchange="app.toggleThematicLayer('relief', this.checked)"> 🏔️ Physical Relief
-              </label>
-              <label style="font-weight:600; font-size:0.9rem; cursor:pointer;">
-                <input type="checkbox" onchange="app.toggleThematicLayer('rainfall', this.checked)"> 🌧️ Annual Rainfall
-              </label>
-              <label style="font-weight:600; font-size:0.9rem; cursor:pointer;">
-                <input type="checkbox" onchange="app.toggleThematicLayer('population', this.checked)"> 👥 Population Density
-              </label>
-            </div>
-          </div>
-        `;
-        break;
-      case 4:
-        // Topic 5: Contour Lines Heights
-        this.exploreState.heightVal = 120;
-        this.exploreState.profile = "gentle"; // steep, gentle, cliff
-        container.innerHTML = `
-          <div style="display:flex; align-items:center; gap:2rem; flex-wrap: wrap;">
-            <div style="display:flex; flex-direction:column; gap:0.25rem;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--text-secondary);">Peak Height (meters): <span id="height-lbl">120m</span></label>
-              <input type="range" min="50" max="200" value="120" style="accent-color:var(--accent-primary);" oninput="app.setContourHeight(this.value)">
-            </div>
-            <div style="display:flex; flex-direction:column; gap:0.25rem;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--text-secondary);">Slope Profile Shape:</label>
-              <select onchange="app.setContourProfile(this.value)" style="padding:0.4rem 0.8rem; border-radius:6px; border:1px solid var(--border-color); font-family:var(--font-sans); outline:none;">
-                <option value="gentle">Gentle Uniform Slope</option>
-                <option value="steep">Steep Uniform Slope</option>
-                <option value="cliff">Steep Cliff (West Side)</option>
-              </select>
-            </div>
-            <p style="font-size:0.8rem; color:var(--text-secondary); max-width: 320px;">
-              Changing peak height adds/removes lines. Different slope shapes bunch contour lines closer or spread them further apart!
-            </p>
-          </div>
-        `;
-        break;
-    }
-
-    this.renderExploreSandbox();
-  }
-
-  setupExploreListeners() {
-    const canvas = this.exploreCanvas;
-    
-    canvas.addEventListener("mousedown", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-      if (this.activeTopic === 0) {
-        // Check if mouse is on the slider bar
-        const sliderX = this.exploreState.sliderX;
-        if (Math.abs(mx - sliderX) < 15) {
-          this.exploreState.dragging = true;
-        }
-      }
-    });
-
-    canvas.addEventListener("mousemove", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
-      const my = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-      this.exploreState.mouseX = mx;
-      this.exploreState.mouseY = my;
-
-      if (this.activeTopic === 0 && this.exploreState.dragging) {
-        // Drag slider
-        this.exploreState.sliderX = Math.max(10, Math.min(canvas.width - 10, mx));
-        this.renderExploreSandbox();
-      } else if (this.activeTopic === 0 || this.activeTopic === 1 || this.activeTopic === 3) {
-        // Hover updates
-        this.renderExploreSandbox();
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      if (this.activeTopic === 0) {
-        this.exploreState.dragging = false;
-      }
-    });
-  }
-
-  renderExploreSandbox() {
-    const ctx = this.exploreCtx;
-    const w = this.exploreCanvas.width;
-    const h = this.exploreCanvas.height;
-    
-    ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = this.theme === "dark" ? "#1e293b" : "#faf8f5";
-    ctx.fillRect(0, 0, w, h);
-
-    // Grid details
-    ctx.strokeStyle = this.theme === "dark" ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.03)";
-    ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 40) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-
-    // Delegate rendering to multi-chapter routing method
-    this.drawExploreContent(this.activeChapter, this.activeTopic, ctx, w, h);
-  }
-
-  // --- TOPIC 1 SIMULATION: SPLIT SLIDER ---
-  drawTopic1Sandbox(ctx, w, h) {
-    const sliderX = this.exploreState.sliderX;
-
-    // Define landscape features
-    const lake = [
-      { x: 300, y: 150 }, { x: 450, y: 120 }, { x: 500, y: 190 }, 
-      { x: 400, y: 260 }, { x: 320, y: 220 }
-    ];
-    const park = { x: 120, y: 280, r: 70 };
-    const roadNodes = [
-      { x: 50, y: 180 }, { x: 220, y: 190 }, { x: 320, y: 130 },
-      { x: 520, y: 220 }, { x: 700, y: 200 }
-    ];
-
-    // Landmark: Buddha Statue at Hussain Sagar
-    const buddha = { x: 410, y: 180 };
-
-    // --- DRAW LEFT SIDE: Satellite view ---
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, sliderX, h);
-    ctx.clip();
-
-    // Satellite land textures
-    ctx.fillStyle = "#2d3e24"; // Forest dark green
-    ctx.fillRect(0, 0, w, h);
-
-    // Build organic fields
-    ctx.fillStyle = "#3b5230";
-    ctx.fillRect(50, 40, 200, 120);
-    ctx.fillStyle = "#273620";
-    ctx.fillRect(500, 280, 200, 180);
-
-    // Draw detailed water body
-    ctx.fillStyle = "#16283d";
-    ctx.beginPath();
-    ctx.moveTo(lake[0].x, lake[0].y);
-    lake.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.closePath();
-    ctx.fill();
-    // detailed shoreline sand
-    ctx.strokeStyle = "#80705a";
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Draw tree assets on park
-    ctx.fillStyle = "#1d5218";
-    ctx.beginPath();
-    ctx.arc(park.x, park.y, park.r, 0, 2*Math.PI);
-    ctx.fill();
-    // small circles representing individual tree crowns
-    ctx.fillStyle = "#0f360c";
-    for(let i=0; i<8; i++) {
-      ctx.beginPath();
-      ctx.arc(park.x - 30 + (i*10), park.y - 20 + (Math.sin(i)*15), 12, 0, 2*Math.PI);
-      ctx.fill();
-    }
-
-    // Draw realistic gray roads
-    ctx.strokeStyle = "#555555";
-    ctx.lineWidth = 14;
-    ctx.beginPath();
-    ctx.moveTo(roadNodes[0].x, roadNodes[0].y);
-    roadNodes.forEach(rn => ctx.lineTo(rn.x, rn.y));
-    ctx.stroke();
-    // Road center dashes
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 1;
-    ctx.setLineDash([5, 8]);
-    ctx.beginPath();
-    ctx.moveTo(roadNodes[0].x, roadNodes[0].y);
-    roadNodes.forEach(rn => ctx.lineTo(rn.x, rn.y));
-    ctx.stroke();
-    ctx.setLineDash([]); // clear
-
-    // Draw realistic Buddha Statue
-    ctx.fillStyle = "#b0c4de"; // stone blue-grey
-    ctx.beginPath();
-    ctx.arc(buddha.x, buddha.y, 8, 0, 2*Math.PI);
-    ctx.fill();
-    // shadow
-    ctx.fillStyle = "rgba(0,0,0,0.4)";
-    ctx.beginPath();
-    ctx.ellipse(buddha.x + 4, buddha.y + 4, 8, 4, 0, 0, 2*Math.PI);
-    ctx.fill();
-
-    // Draw tiny buildings blocks
-    ctx.fillStyle = "#b05c46";
-    ctx.fillRect(100, 80, 20, 15);
-    ctx.fillRect(130, 75, 18, 20);
-    ctx.fillStyle = "#e0a96d";
-    ctx.fillRect(200, 380, 30, 25);
-    ctx.fillRect(240, 370, 25, 25);
-
-    ctx.restore();
-
-    // --- DRAW RIGHT SIDE: Cartographic Map view ---
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(sliderX, 0, w - sliderX, h);
-    ctx.clip();
-
-    // Parchment base map
-    ctx.fillStyle = "#fcfaf6";
-    ctx.fillRect(0, 0, w, h);
-
-    // Simplified agricultural block (colored zone)
-    ctx.fillStyle = "#e6eedc";
-    ctx.strokeStyle = "#c8dcb3";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.rect(50, 40, 200, 120);
-    ctx.fill();
-    ctx.stroke();
-
-    // Map rivers/water (Hussain Sagar lake)
-    ctx.fillStyle = "#8dc1e9";
-    ctx.strokeStyle = "#5ca5d8";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(lake[0].x, lake[0].y);
-    lake.forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // Simplified road lines (cartographic standard: double orange lines)
-    ctx.strokeStyle = "#c48f43";
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(roadNodes[0].x, roadNodes[0].y);
-    roadNodes.forEach(rn => ctx.lineTo(rn.x, rn.y));
-    ctx.stroke();
-    
-    ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(roadNodes[0].x, roadNodes[0].y);
-    roadNodes.forEach(rn => ctx.lineTo(rn.x, rn.y));
-    ctx.stroke();
-
-    // Simplified Park boundary (Green block with small tree symbols)
-    ctx.fillStyle = "#cae8c8";
-    ctx.strokeStyle = "#9ccf98";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(park.x, park.y, park.r, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.stroke();
-    // Tree Symbol icon
-    ctx.fillStyle = "#2f5647";
-    ctx.font = "16px sans-serif";
-    ctx.fillText("🌳", park.x - 20, park.y);
-    ctx.fillText("🌳", park.x + 20, park.y + 10);
-
-    // Buddha Statue Symbol (Red dot inside circle standard landmark symbol)
-    ctx.strokeStyle = "#ff0000";
-    ctx.lineWidth = 2;
-    ctx.fillStyle = "#ff0000";
-    ctx.beginPath();
-    ctx.arc(buddha.x, buddha.y, 6, 0, 2*Math.PI);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(buddha.x, buddha.y, 2, 0, 2*Math.PI);
-    ctx.fill();
-
-    // Cartographic Labels
-    ctx.fillStyle = "#121c2c";
-    ctx.font = "italic bold 12px 'Cormorant Garamond'";
-    ctx.textAlign = "center";
-    ctx.fillText("Hussain Sagar Lake", buddha.x, buddha.y + 35);
-    ctx.fillText("Necklace Road", roadNodes[1].x + 40, roadNodes[1].y - 12);
-    ctx.fillText("Sanjivaiah Park", park.x, park.y + 5);
-
-    // Map Details (Compass and scale)
-    ctx.fillStyle = "#121c2c";
-    ctx.font = "bold 10px 'Plus Jakarta Sans'";
-    ctx.textAlign = "right";
-    ctx.fillText("N ↑", w - 30, 40);
-    ctx.fillText("Scale: 1 cm = 100 meters", w - 30, h - 30);
-
-    ctx.restore();
-
-    // --- DRAW SLIDER DRAGGABLE BAR ---
-    ctx.strokeStyle = "var(--accent-primary)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(sliderX, 0);
-    ctx.lineTo(sliderX, h);
-    ctx.stroke();
-    
-    // Slider handle circle
-    ctx.fillStyle = "var(--bg-card)";
-    ctx.strokeStyle = "var(--accent-primary)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(sliderX, h / 2, 16, 0, 2*Math.PI);
-    ctx.fill();
-    ctx.stroke();
-    // slider arrows
-    ctx.fillStyle = "var(--accent-primary)";
-    ctx.font = "12px sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("◀▶", sliderX, h / 2);
-
-    // --- INTERACTIVE TOOLTIP ON HOVER ---
-    const mx = this.exploreState.mouseX || 0;
-    const my = this.exploreState.mouseY || 0;
-
-    let distBuddha = Math.hypot(mx - buddha.x, my - buddha.y);
-    let distPark = Math.hypot(mx - park.x, my - park.y);
-
-    if (distBuddha < 25) {
-      this.drawTooltip(ctx, mx, my, "Buddha Statue", 
-        "Map: Red point symbol. Photo: Grey granite monolith sculpture standing in Hussain Sagar lake.");
-    } else if (distPark < park.r) {
-      this.drawTooltip(ctx, mx, my, "Sanjivaiah Park", 
-        "Map: Standard green zone. Photo: Dense canopy of green tree crowns, footpaths, and gardens.");
-    }
-  }
-
-  // --- TOPIC 2 SIMULATION: HISTORICAL MAP EXPLORER ---
-  setExploreMap(mapIndex) {
-    this.exploreState.activeMap = mapIndex;
-    this.renderExploreSandbox();
-  }
-
-  drawTopic2Sandbox(ctx, w, h) {
-    const activeMap = this.exploreState.activeMap;
-    const mx = this.exploreState.mouseX || 0;
-    const my = this.exploreState.mouseY || 0;
-
-    if (activeMap === 0) {
-      // Babylonian World Map
-      ctx.fillStyle = "#faf3e3";
-      ctx.fillRect(0, 0, w, h);
-
-      const cx = w / 2;
-      const cy = h / 2;
-
-      // Draw clay tablet texture
-      ctx.fillStyle = "#cfab7e";
-      ctx.strokeStyle = "#80582d";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.roundRect(cx - 160, cy - 180, 320, 330, 20);
-      ctx.fill();
-      ctx.stroke();
-
-      // Outer Ocean Rings (Bitter River)
-      ctx.strokeStyle = "#543714";
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy - 20, 110, 0, 2*Math.PI);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(cx, cy - 20, 130, 0, 2*Math.PI);
-      ctx.stroke();
-
-      // Cities representation (rectangles/hubs)
-      ctx.fillStyle = "#ad8253";
-      ctx.strokeStyle = "#543714";
-      ctx.lineWidth = 2;
-      
-      const cities = [
-        { x: cx - 20, y: cy - 50, w: 25, h: 40, name: "Babylon", desc: "Located at the absolute center of the world disk." },
-        { x: cx - 70, y: cy - 70, w: 15, h: 15, name: "Urartu (Armenia)", desc: "Represented near the upper channels of rivers." },
-        { x: cx + 45, y: cy - 10, w: 18, h: 18, name: "Bit-Yakin", desc: "A southern marshland region near the river mouth." }
-      ];
-
-      cities.forEach(c => {
-        ctx.fillRect(c.x, c.y, c.w, c.h);
-        ctx.strokeRect(c.x, c.y, c.w, c.h);
-      });
-
-      // River lines
-      ctx.beginPath();
-      ctx.moveTo(cx - 30, cy - 100);
-      ctx.quadraticCurveTo(cx - 10, cy - 50, cx - 10, cy + 20); // Euphrates
-      ctx.stroke();
-
-      // Outside triangles (outer regions/islands)
-      const triangles = [
-        { x1: cx - 120, y1: cy - 90, x2: cx - 140, y2: cy - 130, x3: cx - 90, y3: cy - 110, name: "Outer Region 1", desc: "An island beyond the Bitter River where the sun is not seen." },
-        { x1: cx + 120, y1: cy - 90, x2: cx + 140, y2: cy - 130, x3: cx + 90, y3: cy - 110, name: "Outer Region 2", desc: "Legendary region with giant birds and beasts." }
-      ];
-
-      triangles.forEach(t => {
-        ctx.beginPath();
-        ctx.moveTo(t.x1, t.y1);
-        ctx.lineTo(t.x2, t.y2);
-        ctx.lineTo(t.x3, t.y3);
-        ctx.closePath();
-        ctx.stroke();
-      });
-
-      // Labels
-      ctx.fillStyle = "#543714";
-      ctx.font = "italic bold 11px serif";
-      ctx.fillText("BITTER RIVER (MARRATU)", cx - 80, cy + 105);
-      
-      // Interactive points check
-      cities.forEach(c => {
-        if (mx > c.x && mx < c.x + c.w && my > c.y && my < c.y + c.h) {
-          this.drawTooltip(ctx, mx, my, c.name, c.desc);
-        }
-      });
-      triangles.forEach(t => {
-        // approximate bounding box checking
-        if (Math.hypot(mx - t.x2, my - t.y2) < 25) {
-          this.drawTooltip(ctx, mx, my, t.name, t.desc);
-        }
-      });
-
-    } 
-    else if (activeMap === 1) {
-      // Al-Idrisi Map (South up)
-      ctx.fillStyle = "#fcf8ee";
-      ctx.fillRect(0, 0, w, h);
-
-      const cx = w / 2;
-      const cy = h / 2;
-
-      // Draw map circle
-      ctx.strokeStyle = "#b0813f";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 180, 0, 2*Math.PI);
-      ctx.fillStyle = "#0c1724";
-      ctx.fill();
-      ctx.stroke();
-
-      // Outer ocean ring
-      ctx.beginPath();
-      ctx.arc(cx, cy, 195, 0, 2*Math.PI);
-      ctx.stroke();
-
-      // Continental shapes in gold-brown (Africa top-right, Europe bottom)
-      ctx.fillStyle = "#8c6b3f";
-      ctx.beginPath();
-      // Africa
-      ctx.arc(cx + 60, cy - 60, 90, 0, Math.PI * 1.6);
-      ctx.closePath();
-      ctx.fill();
-
-      // Arabia & India
-      ctx.beginPath();
-      ctx.moveTo(cx - 100, cy - 50);
-      ctx.quadraticCurveTo(cx - 30, cy + 30, cx - 10, cy - 70);
-      ctx.lineTo(cx - 50, cy - 100);
-      ctx.closePath();
-      ctx.fill();
-
-      // Europe
-      ctx.fillStyle = "#5c6b80";
-      ctx.beginPath();
-      ctx.arc(cx - 50, cy + 60, 60, 0, Math.PI);
-      ctx.closePath();
-      ctx.fill();
-
-      // Orientation tags
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 13px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText("SOUTH (AL-JANUB) AT TOP", cx, cy - 210);
-      ctx.fillText("NORTH (AL-SHAMAL) AT BOTTOM", cx, cy + 225);
-
-      // Markers
-      const markers = [
-        { x: cx - 20, y: cy - 40, name: "Arabian Peninsula", desc: "Placed centrally. Contains Mecca, the holy hub." },
-        { x: cx + 80, y: cy - 80, name: "Africa (Al-Sudan)", desc: "Mapped extensively along the upper hemisphere." },
-        { x: cx - 80, y: cy + 50, name: "Mediterranean Sea", desc: "Drawn as a narrow channel splitting Europe and Africa." }
-      ];
-
-      markers.forEach(m => {
-        ctx.fillStyle = "#ffcc00";
-        ctx.beginPath();
-        ctx.arc(m.x, m.y, 5, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-
-        if (Math.hypot(mx - m.x, my - m.y) < 15) {
-          this.drawTooltip(ctx, mx, my, m.name, m.desc);
-        }
-      });
-    } 
-    else {
-      // Mercator Map with drag path
-      ctx.fillStyle = "#111827";
-      ctx.fillRect(0, 0, w, h);
-
-      // Grid projection
-      ctx.strokeStyle = "rgba(176, 129, 63, 0.2)";
-      ctx.lineWidth = 1;
-      for (let x = 60; x < w; x += 60) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      for (let y = 50; y < h; y += 50) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
-        ctx.stroke();
-      }
-
-      // Drawing simple maps outlines
-      ctx.fillStyle = "#1e293b";
-      ctx.strokeStyle = "#b0813f";
-      
-      // Americas outline
-      ctx.beginPath();
-      ctx.rect(60, 80, 80, 300);
-      ctx.fill(); ctx.stroke();
-      
-      // Africa / Europe
-      ctx.beginPath();
-      ctx.rect(300, 100, 120, 240);
-      ctx.fill(); ctx.stroke();
-
-      // Greenland (stetched giant at top)
-      ctx.fillStyle = "#334155";
-      ctx.beginPath();
-      ctx.rect(180, 20, 140, 60);
-      ctx.fill(); ctx.stroke();
-
-      // Navigation line indicator
-      ctx.strokeStyle = "#c05c46";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      ctx.moveTo(100, 320); // America
-      ctx.lineTo(340, 150); // Europe
-      ctx.stroke();
-
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 11px 'Plus Jakarta Sans'";
-      ctx.fillText("Constant Rhumb Line navigation direction (keeps angles identical)", 110, 340);
-
-      // Interactive pins
-      const pins = [
-        { x: 250, y: 50, name: "Exaggerated Greenland", desc: "In Mercator projection, objects near poles stretch outward, making Greenland look as large as Africa." },
-        { x: 360, y: 220, name: "Africa Continent", desc: "Drawn near equator. Size is accurate, but looks smaller compared to stretched polar zones." },
-        { x: 220, y: 235, name: "Straight Compass Course", options: "Helps navigators sail continuously in a single compass bearing without adjusting steering angle." }
-      ];
-
-      pins.forEach(p => {
-        ctx.fillStyle = "#ff5555";
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 6, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-
-        if (Math.hypot(mx - p.x, my - p.y) < 15) {
-          this.drawTooltip(ctx, mx, my, p.name, p.desc);
-        }
-      });
-    }
-  }
-
-  // --- TOPIC 3 SIMULATION: TRIANGULATION SURVEY GAME ---
-  renderTriangulationControls(container) {
-    const step = this.exploreState.surveyStep;
-    const dial = this.exploreState.dialVal;
-    
-    let targetMsg = "";
-    let targetAngle = 0;
-
-    if (step === 0) {
-      targetMsg = "Align Theodolite from **Madras Base** to **Bangalore Tower** (Target Angle: **268°**)";
-      targetAngle = 268;
-    } else if (step === 1) {
-      targetMsg = "Align Theodolite from **Bangalore** to **Hyderabad Tower** (Target Angle: **42°**)";
-      targetAngle = 42;
-    } else if (step === 2) {
-      targetMsg = "Align Theodolite from **Hyderabad** to **Nagpur Tower** (Target Angle: **78°**)";
-      targetAngle = 78;
-    } else if (step === 3) {
-      targetMsg = "Align Theodolite from **Nagpur** to **Delhi Tower** (Target Angle: **312°**)";
-      targetAngle = 312;
-    }
-
-    if (step < 4) {
-      container.innerHTML = `
-        <div style="display:flex; flex-direction:column; gap:0.8rem;">
-          <p style="font-size:0.88rem; color:var(--text-primary); font-weight:700;">
-            🎯 ${targetMsg}
-          </p>
-          <div style="display:flex; align-items:center; gap:2rem;">
-            <div style="display:flex; flex-direction:column; gap:0.25rem; flex: 1;">
-              <label style="font-size:0.8rem; font-weight:700; color:var(--text-secondary);">Theodolite Scope Angle: <span id="dial-val-lbl" style="color:var(--accent-primary); font-weight:700;">${dial}°</span></label>
-              <input type="range" min="0" max="360" value="${dial}" style="accent-color:var(--accent-secondary);" oninput="app.setSurveyDial(this.value)">
-            </div>
-            <button class="primary-btn" onclick="app.lockSurveyMeasurement(${targetAngle})">Lock Angle & Measure</button>
-          </div>
-        </div>
-      `;
-    } else {
-      container.innerHTML = `
-        <div style="text-align:center; padding:0.5rem 0;">
-          <h4 style="color:var(--accent-secondary); margin-bottom:0.25rem;">🎉 Trigonometrical Mapping Successful!</h4>
-          <p style="font-size:0.85rem; color:var(--text-secondary);">
-            Excellent! You have connected St. Thomas Mount (Madras) up to Delhi, measuring the Earth's curvature and mapping the mountains exactly like William Lambton and George Everest.
-          </p>
-        </div>
-      `;
-    }
-  }
-
-  setSurveyDial(val) {
-    this.exploreState.dialVal = parseInt(val);
-    const lbl = document.getElementById("dial-val-lbl");
-    if (lbl) lbl.innerText = `${val}°`;
-    this.renderExploreSandbox();
-  }
-
-  lockSurveyMeasurement(target) {
-    const dial = this.exploreState.dialVal;
-    const diff = Math.abs(dial - target);
-    const statusMsg = document.getElementById("explore-status-msg");
-
-    if (diff <= 2) {
-      statusMsg.style.color = "var(--accent-secondary)";
-      statusMsg.innerText = "✓ Angle Lock Successful!";
-      
-      // Save completed step line details to trace
-      this.exploreState.triangles.push(this.exploreState.surveyStep);
-      this.exploreState.surveyStep++;
-      this.exploreState.dialVal = 0; // reset dial
-
-      setTimeout(() => {
-        statusMsg.innerText = "";
-        this.renderTriangulationControls(document.getElementById("sandbox-controls-container"));
-        this.renderExploreSandbox();
-      }, 1000);
-    } else {
-      statusMsg.style.color = "var(--text-primary)";
-      statusMsg.innerText = "❌ Angle inaccurate! Look through scope dials closely.";
-      setTimeout(() => statusMsg.innerText = "", 1500);
-    }
-  }
-
-  drawTopic3Sandbox(ctx, w, h) {
-    const step = this.exploreState.surveyStep;
-    const dial = this.exploreState.dialVal;
-
-    // Define 5 coordinates of cities (scaled to canvas size)
-    const stations = [
-      { name: "Madras", x: 420, y: 400 },
-      { name: "Bangalore", x: 260, y: 380 },
-      { name: "Hyderabad", x: 320, y: 280 },
-      { name: "Nagpur", x: 430, y: 220 },
-      { name: "Delhi", x: 280, y: 90 }
-    ];
-
-    // Draw background outline map of India (simplified)
-    ctx.strokeStyle = "rgba(47, 86, 71, 0.15)";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(350, 40); // north
-    ctx.lineTo(400, 90);
-    ctx.lineTo(440, 150);
-    ctx.lineTo(490, 180);
-    ctx.lineTo(480, 240);
-    ctx.lineTo(450, 310);
-    ctx.lineTo(420, 420); // cape comorin
-    ctx.lineTo(340, 420);
-    ctx.lineTo(260, 360);
-    ctx.lineTo(210, 300);
-    ctx.lineTo(200, 240);
-    ctx.lineTo(160, 180);
-    ctx.lineTo(220, 120);
-    ctx.lineTo(280, 40);
-    ctx.closePath();
-    ctx.stroke();
-
-    // Draw locks triangles
-    this.exploreState.triangles.forEach(tIndex => {
-      ctx.fillStyle = "rgba(47, 86, 71, 0.12)";
-      ctx.strokeStyle = "rgba(47, 86, 71, 0.7)";
-      ctx.lineWidth = 2.5;
-      ctx.beginPath();
-      
-      if (tIndex === 0) {
-        ctx.moveTo(stations[0].x, stations[0].y);
-        ctx.lineTo(stations[1].x, stations[1].y);
-        ctx.lineTo(stations[2].x, stations[2].y);
-      } else if (tIndex === 1) {
-        ctx.moveTo(stations[1].x, stations[1].y);
-        ctx.lineTo(stations[2].x, stations[2].y);
-        ctx.lineTo(stations[3].x, stations[3].y);
-      } else if (tIndex === 2) {
-        ctx.moveTo(stations[2].x, stations[2].y);
-        ctx.lineTo(stations[3].x, stations[3].y);
-        ctx.lineTo(stations[4].x, stations[4].y);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.stroke();
-    });
-
-    // Draw active alignment line dynamically based on slider dial angle
-    if (step < 4) {
-      const activeStation = stations[step];
-      const angleRad = (dial - 90) * Math.PI / 180; // 0 degree points North
-      const length = 200;
-
-      ctx.strokeStyle = "rgba(192, 92, 70, 0.6)";
-      ctx.lineWidth = 1.5;
-      ctx.setLineDash([4, 4]);
-      ctx.beginPath();
-      ctx.moveTo(activeStation.x, activeStation.y);
-      ctx.lineTo(activeStation.x + Math.cos(angleRad) * length, activeStation.y + Math.sin(angleRad) * length);
-      ctx.stroke();
-      ctx.setLineDash([]); // clear
-    }
-
-    // Draw survey tower circles
-    stations.forEach((s, idx) => {
-      const isActive = idx === step;
-      
-      // Draw tower block
-      ctx.fillStyle = isActive ? "#ff0000" : "#2f5647";
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, 6, 0, 2*Math.PI);
-      ctx.fill();
-      
-      // outer ring
-      ctx.strokeStyle = isActive ? "rgba(255,0,0,0.4)" : "rgba(47, 86, 71, 0.4)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(s.x, s.y, 12, 0, 2*Math.PI);
-      ctx.stroke();
-
-      // text label
-      ctx.fillStyle = "#121c2c";
-      ctx.font = "bold 10px 'Plus Jakarta Sans'";
-      ctx.fillText(s.name, s.x + 12, s.y + 3);
-    });
-
-    // If survey is fully completed, overlay grid triangulation lines all over India map
-    if (step === 4) {
-      ctx.strokeStyle = "rgba(176, 129, 63, 0.25)";
-      ctx.lineWidth = 1;
-      for (let i = 0; i < stations.length; i++) {
-        for (let j = i + 1; j < stations.length; j++) {
-          ctx.beginPath();
-          ctx.moveTo(stations[i].x, stations[i].y);
-          ctx.lineTo(stations[j].x, stations[j].y);
-          ctx.stroke();
-        }
-      }
-    }
-  }
-
-  // --- TOPIC 4 SIMULATION: THEMATIC LAYERS SANDBOX ---
-  toggleThematicLayer(layerName, isChecked) {
-    this.exploreState.layers[layerName] = isChecked;
-    this.renderExploreSandbox();
-  }
-
-  drawTopic4Sandbox(ctx, w, h) {
-    const layers = this.exploreState.layers;
-    const mx = this.exploreState.mouseX || 0;
-    const my = this.exploreState.mouseY || 0;
-
-    // Define mock circular boundaries for TS districts (X, Y, Radius)
-    const districts = [
-      { name: "Adilabad (North)", cx: 370, cy: 90, r: 40, relief: 480, rain: 1050, density: 140 },
-      { name: "Nizamabad", cx: 280, cy: 170, r: 35, relief: 380, rain: 950, density: 230 },
-      { name: "Karimnagar", cx: 390, cy: 160, r: 35, relief: 300, rain: 980, density: 290 },
-      { name: "Medak (Central)", cx: 290, cy: 240, r: 35, relief: 440, rain: 880, density: 210 },
-      { name: "Warangal", cx: 430, cy: 220, r: 40, relief: 280, rain: 1020, density: 320 },
-      { name: "Khammam (East)", cx: 520, cy: 300, r: 45, relief: 120, rain: 1120, density: 190 },
-      { name: "Hyderabad Capital", cx: 320, cy: 300, r: 20, relief: 540, rain: 780, density: 18000 },
-      { name: "Nalgonda", cx: 420, cy: 320, r: 40, relief: 220, rain: 720, density: 240 },
-      { name: "Mahabubnagar (South)", cx: 250, cy: 360, r: 45, relief: 500, rain: 650, density: 180 }
-    ];
-
-    // base outline render
-    ctx.strokeStyle = "#e5dec9";
-    ctx.lineWidth = 2;
-
-    districts.forEach(d => {
-      // Calculate color mixes depending on toggled layer switches
-      let fillStyle = "#faf8f5"; // neutral cream default
-
-      if (layers.relief && !layers.rainfall && !layers.population) {
-        // Physical Relief colors (green plains to yellow plateaus to brown hills)
-        if (d.relief < 150) fillStyle = "#c5e1a5"; // low plains green
-        else if (d.relief >= 150 && d.relief < 450) fillStyle = "#ffe082"; // table plateau yellow
-        else fillStyle = "#d7ccc8"; // higher plateau grey-brown
-      } 
-      else if (!layers.relief && layers.rainfall && !layers.population) {
-        // Rainfall overlay shades of blue
-        if (d.rain < 750) fillStyle = "#e3f2fd";
-        else if (d.rain >= 750 && d.rain < 1000) fillStyle = "#90caf9";
-        else fillStyle = "#1e88e5";
-      } 
-      else if (!layers.relief && !layers.rainfall && layers.population) {
-        // Population choropleth gradient
-        if (d.density < 200) fillStyle = "#ffebee";
-        else if (d.density >= 200 && d.density < 1000) fillStyle = "#ef9a9a";
-        else fillStyle = "#c62828"; // Hyderabad dense red
-      } 
-      else if (layers.relief || layers.rainfall || layers.population) {
-        // Combined blend layers
-        fillStyle = "#eceff1";
-      }
-
-      ctx.fillStyle = fillStyle;
-      ctx.beginPath();
-      ctx.arc(d.cx, d.cy, d.r, 0, 2*Math.PI);
-      ctx.fill();
-      ctx.stroke();
-
-      // name text anchor inside district
-      ctx.fillStyle = "rgba(18, 28, 44, 0.4)";
-      ctx.font = "bold 9px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText(d.name.split(" ")[0], d.cx, d.cy + 3);
-    });
-
-    // Check hover bounds
-    districts.forEach(d => {
-      if (Math.hypot(mx - d.cx, my - d.cy) < d.r) {
-        // Highlight active hovered circle
-        ctx.strokeStyle = "var(--accent-primary)";
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(d.cx, d.cy, d.r, 0, 2*Math.PI);
-        ctx.stroke();
-
-        // Renders statistics details card tooltip
-        this.drawTooltip(ctx, mx, my, d.name, 
-          `Elevation: ${d.relief}m (Relief)\n` +
-          `Avg Rainfall: ${d.rain} mm/year\n` +
-          `Population Density: ${d.density} people/sq.km`
-        );
-      }
-    });
-  }
-
-  // --- TOPIC 5 SIMULATION: 3D AND 2D CONTOUR SANDBOX ---
-  setContourHeight(val) {
-    this.exploreState.heightVal = parseInt(val);
-    document.getElementById("height-lbl").innerText = `${val}m`;
-    this.renderExploreSandbox();
-  }
-
-  setContourProfile(val) {
-    this.exploreState.profile = val;
-    this.renderExploreSandbox();
-  }
-
-  drawTopic5Sandbox(ctx, w, h) {
-    const height = this.exploreState.heightVal;
-    const profile = this.exploreState.profile;
-
-    const midX = w / 2;
-    
-    // Split screens divider
-    ctx.strokeStyle = "#e5dec9";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(midX, 0);
-    ctx.lineTo(midX, h);
-    ctx.stroke();
-
-    // --- DRAW LEFT SIDE: 3D perspective hill mesh ---
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(0, 0, midX, h);
-    ctx.clip();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, midX, h);
-    
-    ctx.fillStyle = "rgba(47, 86, 71, 0.05)";
-    ctx.font = "bold 11px 'Plus Jakarta Sans'";
-    ctx.fillText("3D Profile View", 15, 30);
-
-    const cx3d = midX / 2;
-    const cy3d = h / 2 + 50;
-
-    // Draw ground base line
-    ctx.strokeStyle = "#5c6b80";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cx3d - 140, cy3d);
-    ctx.lineTo(cx3d + 140, cy3d);
-    ctx.stroke();
-
-    // Draw hill shape depending on profile slope selection
-    ctx.fillStyle = "#2f5647";
-    ctx.strokeStyle = "#1e372e";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(cx3d - 140, cy3d);
-    
-    if (profile === "gentle") {
-      ctx.quadraticCurveTo(cx3d - 60, cy3d - height, cx3d, cy3d - height);
-      ctx.quadraticCurveTo(cx3d + 60, cy3d - height, cx3d + 140, cy3d);
-    } else if (profile === "steep") {
-      ctx.quadraticCurveTo(cx3d - 30, cy3d - height, cx3d, cy3d - height);
-      ctx.quadraticCurveTo(cx3d + 30, cy3d - height, cx3d + 140, cy3d);
-    } else if (profile === "cliff") {
-      // West (left) side is vertical/steep cliff
-      ctx.lineTo(cx3d - 40, cy3d);
-      ctx.lineTo(cx3d - 35, cy3d - height);
-      ctx.quadraticCurveTo(cx3d + 50, cy3d - height, cx3d + 140, cy3d);
-    }
-    
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    // draw parallel slices showing heights increments
-    ctx.strokeStyle = "rgba(176, 129, 63, 0.6)";
-    ctx.lineWidth = 1.5;
-    for (let step = 30; step < height; step += 30) {
-      const sliceY = cy3d - step;
-      ctx.beginPath();
-      ctx.moveTo(cx3d - 120, sliceY);
-      ctx.lineTo(cx3d + 120, sliceY);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-
-    // --- DRAW RIGHT SIDE: 2D Contour ring map ---
-    ctx.save();
-    ctx.beginPath();
-    ctx.rect(midX, 0, midX, h);
-    ctx.clip();
-
-    ctx.fillStyle = "#fcfaf6";
-    ctx.fillRect(midX, 0, midX, h);
-    
-    ctx.fillStyle = "rgba(176, 129, 63, 0.4)";
-    ctx.font = "bold 11px 'Plus Jakarta Sans'";
-    ctx.fillText("2D Map Contour Lines Projection", midX + 15, 30);
-
-    const cx2d = midX + midX / 2;
-    const cy2d = h / 2;
-
-    // Draw concentric ring lines
-    const ringCount = Math.floor(height / 30);
-    ctx.lineWidth = 2.5;
-
-    for (let i = 1; i <= ringCount; i++) {
-      const rStep = i * 20;
-      ctx.strokeStyle = "rgba(192, 92, 70, 0.85)";
-      ctx.beginPath();
-
-      if (profile === "gentle") {
-        // uniform concentric ellipses
-        ctx.ellipse(cx2d, cy2d, rStep * 1.5, rStep, 0, 0, 2*Math.PI);
-      } else if (profile === "steep") {
-        // tight circles closer center
-        ctx.ellipse(cx2d, cy2d, rStep * 0.8, rStep * 0.6, 0, 0, 2*Math.PI);
-      } else if (profile === "cliff") {
-        // offset centers (West side lines bunch together)
-        const xOffset = -rStep * 0.6;
-        ctx.ellipse(cx2d + xOffset, cy2d, rStep * 1.2, rStep * 0.9, 0, 0, 2*Math.PI);
-      }
-      ctx.stroke();
-
-      // Contour elevation height labels printed on rings
-      ctx.fillStyle = "#121c2c";
-      ctx.font = "9px monospace";
-      ctx.fillText(`${i * 50}m`, cx2d, cy2d - (i * 12));
-    }
-
-    ctx.restore();
-  }
-
-  // Common Tooltip utility
-  drawTooltip(ctx, x, y, title, bodyText) {
-    ctx.save();
-    const padding = 10;
-    const boxW = 240;
-    
-    // split bodies into lines
-    const lines = bodyText.split("\n");
-    const boxH = 25 + (lines.length * 15);
-    
-    let boxX = x + 15;
-    let boxY = y + 15;
-
-    // keep within boundaries
-    if (boxX + boxW > ctx.canvas.width) boxX = x - boxW - 15;
-    if (boxY + boxH > ctx.canvas.height) boxY = y - boxH - 15;
-
-    ctx.fillStyle = "rgba(18, 28, 44, 0.95)";
-    ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxW, boxH, 8);
-    ctx.fill();
-
-    ctx.fillStyle = "var(--accent-primary)";
-    ctx.font = "bold 11px 'Plus Jakarta Sans'";
-    ctx.fillText(title, boxX + padding, boxY + 18);
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "10px 'Plus Jakarta Sans'";
-    lines.forEach((l, idx) => {
-      ctx.fillText(l, boxX + padding, boxY + 33 + (idx * 15));
-    });
-
-    ctx.restore();
-  }
-
-  // --- TAB 4: PRACTICE MINI QUIZZES ---
-  initMiniQuiz() {
-    const data = topicsData[this.activeTopic].quiz;
-    this.miniQuizAnswers = Array(data.length).fill(null);
-    this.activeMiniQuizQ = 0;
-    this.renderMiniQuizCard();
-  }
-
-  renderMiniQuizCard() {
-    const container = document.getElementById("mini-quiz-card-container");
-    if (!container) return;
-    
-    const quiz = topicsData[this.activeTopic].quiz;
-    const currentQIndex = this.activeMiniQuizQ;
-    const q = quiz[currentQIndex];
-    const userAnswer = this.miniQuizAnswers[currentQIndex];
-
-    container.innerHTML = `
-      <div class="quiz-card">
-        <div class="quiz-progress">Question ${currentQIndex + 1} of ${quiz.length}</div>
-        <div class="quiz-question">${q.question}</div>
-        <div class="quiz-options">
-          ${q.options.map((opt, oIdx) => {
-            let stateClass = "";
-            let isDisabled = userAnswer !== null ? "disabled" : "";
-
-            if (userAnswer !== null) {
-              if (oIdx === q.answerIndex) stateClass = "correct";
-              else if (oIdx === userAnswer) stateClass = "wrong";
+        particles.forEach(p => {
+            ctx.beginPath();
+            ctx.fillStyle = p.color;
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Move particles
+            p.y += p.vy;
+            p.x += p.vx;
+            
+            // Boundary wrap
+            if (p.x < 0) p.x = canvas.width;
+            if (p.x > canvas.width) p.x = 0;
+            if (p.y < 0) p.y = canvas.height;
+            if (p.y > canvas.height) p.y = 0;
+
+            // Connect lines to mouse
+            if (mouse.x && mouse.y) {
+                const dist = Math.hypot(p.x - mouse.x, p.y - mouse.y);
+                if (dist < 100) {
+                    ctx.strokeStyle = `rgba(212, 175, 55, ${1 - dist/100})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(mouse.x, mouse.y);
+                    ctx.stroke();
+                }
             }
-
-            return `
-              <button class="quiz-option ${stateClass}" ${isDisabled} onclick="app.submitMiniQuizAnswer(${oIdx})">
-                ${opt}
-              </button>
-            `;
-          }).join("")}
-        </div>
-
-        <div class="quiz-feedback ${userAnswer !== null ? (userAnswer === q.answerIndex ? 'correct' : 'wrong') : ''}" id="mini-quiz-feedback-box">
-          <div class="quiz-feedback-title">
-            ${userAnswer !== null ? (userAnswer === q.answerIndex ? '✓ Correct Answer!' : '❌ Incorrect Answer') : ''}
-          </div>
-          <div style="font-size:0.85rem;">${q.explanation}</div>
-        </div>
-
-        ${userAnswer !== null ? `
-          <div class="quiz-nav-row">
-            <button class="quiz-next-btn" onclick="app.nextMiniQuizQ()">
-              ${currentQIndex < quiz.length - 1 ? 'Next Question' : 'Finish Quiz'}
-            </button>
-          </div>
-        ` : ''}
-      </div>
-    `;
-  }
-
-  submitMiniQuizAnswer(selectedIdx) {
-    this.miniQuizAnswers[this.activeMiniQuizQ] = selectedIdx;
-    this.renderMiniQuizCard();
-  }
-
-  nextMiniQuizQ() {
-    const quiz = topicsData[this.activeTopic].quiz;
-    if (this.activeMiniQuizQ < quiz.length - 1) {
-      this.activeMiniQuizQ++;
-      this.renderMiniQuizCard();
-    } else {
-      // Calculate score
-      let score = 0;
-      this.miniQuizAnswers.forEach((ans, idx) => {
-        if (ans === quiz[idx].answerIndex) score++;
-      });
-
-      // Complete topic progress
-      const container = document.getElementById("mini-quiz-card-container");
-      container.innerHTML = `
-        <div class="quiz-card" style="text-align:center;">
-          <h3 style="color:var(--accent-secondary); margin-bottom: 0.5rem;">🎉 Practice Quiz Completed!</h3>
-          <p style="font-size:1.1rem; font-weight:700; margin-bottom:1rem;">Your score is: ${score} / ${quiz.length}</p>
-          <p style="font-size:0.88rem; color:var(--text-secondary); margin-bottom:1.5rem;">
-            Excellent practice session! Now proceed to the Revision stage to memorize terms and review key points.
-          </p>
-          <button class="primary-btn" onclick="app.advanceFlowStep()">Go to Revision</button>
-        </div>
-      `;
+        });
+        requestAnimationFrame(draw);
     }
-  }
-
-  // --- TAB 5: REVISE SECTION (FLASHCARDS) ---
-  renderReviseTab() {
-    const data = topicsData[this.activeTopic];
-    const pointsContainer = document.getElementById("summary-points-container");
-    pointsContainer.innerHTML = "";
-    data.summary.forEach(pt => {
-      const li = document.createElement("li");
-      li.innerText = pt;
-      pointsContainer.appendChild(li);
-    });
-  }
-
-  renderFlashcard() {
-    const flashcards = topicsData[this.activeTopic].flashcards;
-    const fc = flashcards[this.flashcardIndex];
-    document.getElementById("flashcard-word-display").innerText = fc.word;
-    document.getElementById("flashcard-def-display").innerText = fc.definition;
-    document.getElementById("flashcard-indicator-display").innerText = `${this.flashcardIndex + 1} / ${flashcards.length}`;
-    
-    // reset flip
-    this.flashcardFlipped = false;
-    document.getElementById("vocab-flashcard").classList.remove("flipped");
-  }
-
-  flipFlashcard() {
-    this.flashcardFlipped = !this.flashcardFlipped;
-    const card = document.getElementById("vocab-flashcard");
-    if (this.flashcardFlipped) card.classList.add("flipped");
-    else card.classList.remove("flipped");
-  }
-
-  nextFlashcard() {
-    const len = topicsData[this.activeTopic].flashcards.length;
-    this.flashcardIndex = (this.flashcardIndex + 1) % len;
-    this.renderFlashcard();
-  }
-
-  prevFlashcard() {
-    const len = topicsData[this.activeTopic].flashcards.length;
-    this.flashcardIndex = (this.flashcardIndex - 1 + len) % len;
-    this.renderFlashcard();
-  }
-
-  // --- FINAL CERTIFICATION TEST ---
-  showFinalTestIntro() {
-    // Hide lessons, show final exam board
-    document.getElementById("topic-section").style.display = "none";
-    document.getElementById("final-test-section").style.display = "block";
-    document.getElementById("sidebar-final-test-btn").classList.add("active");
-    
-    // Reset views
-    document.getElementById("test-intro-panel").style.display = "block";
-    document.getElementById("test-questions-panel").style.display = "none";
-    document.getElementById("test-results-panel").style.display = "none";
-  }
-
-  startFinalTest() {
-    this.testActive = true;
-    this.testAnswers = Array(finalTestQuestions.length).fill(null);
-    this.testTime = 0;
-
-    // Show sheets
-    document.getElementById("test-intro-panel").style.display = "none";
-    document.getElementById("test-questions-panel").style.display = "block";
-    document.getElementById("test-results-panel").style.display = "none";
-
-    // Run Timer
-    clearInterval(this.testTimerId);
-    this.testTimerId = setInterval(() => {
-      this.testTime++;
-      const min = String(Math.floor(this.testTime / 60)).padStart(2, "0");
-      const sec = String(this.testTime % 60).padStart(2, "0");
-      document.getElementById("test-timer").innerText = `Time Elapsed: ${min}:${sec}`;
-    }, 1000);
-
-    // Build question list
-    const container = document.getElementById("test-questions-container");
-    container.innerHTML = "";
-
-    finalTestQuestions.forEach((q, idx) => {
-      const card = document.createElement("div");
-      card.className = "test-q-card";
-      card.innerHTML = `
-        <div class="test-q-title">${idx + 1}. ${q.question}</div>
-        <div class="test-options">
-          ${q.options.map((opt, oIdx) => `
-            <label class="test-option-label" id="lbl-q${idx}-o${oIdx}">
-              <input type="radio" name="test-q-${idx}" value="${oIdx}" onclick="app.setTestAnswer(${idx}, ${oIdx})">
-              ${opt}
-            </label>
-          `).join("")}
-        </div>
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  setTestAnswer(qIdx, selectedIdx) {
-    this.testAnswers[qIdx] = selectedIdx;
-    
-    // Highlight selected label visually
-    for(let i=0; i<4; i++) {
-      const lbl = document.getElementById(`lbl-q${qIdx}-o${i}`);
-      if (lbl) {
-        if (i === selectedIdx) lbl.style.backgroundColor = "var(--bg-secondary)";
-        else lbl.style.backgroundColor = "transparent";
-      }
-    }
-  }
-
-  submitFinalTest() {
-    // Check if all questions are answered
-    const unanswered = this.testAnswers.filter(ans => ans === null).length;
-    if (unanswered > 0) {
-      alert(`Please answer all questions before submitting! (${unanswered} questions left)`);
-      return;
-    }
-
-    clearInterval(this.testTimerId);
-    this.testActive = false;
-
-    // Calculate score
-    let correctCount = 0;
-    finalTestQuestions.forEach((q, idx) => {
-      if (this.testAnswers[idx] === q.answerIndex) correctCount++;
-    });
-
-    const percent = Math.round((correctCount / finalTestQuestions.length) * 100);
-
-    // Update results panel
-    document.getElementById("results-score").innerText = `${correctCount} / ${finalTestQuestions.length}`;
-    document.getElementById("results-percentage").innerText = `Score: ${percent}%`;
-
-    const verdict = document.getElementById("results-verdict");
-    const summaryText = document.getElementById("results-summary-text");
-    const certBox = document.getElementById("cert-unlock-container");
-
-    const passThreshold = Math.ceil(finalTestQuestions.length * 0.8);
-
-    if (percent >= 80) {
-      verdict.innerText = "Outstanding Accomplishment!";
-      verdict.style.color = "var(--accent-secondary)";
-      summaryText.innerText = `Sensational score! You have proven a strong command over Telangana SCERT Class 8 Social Studies Chapter ${this.activeChapter + 1}. The custom SRIVARDHAN honours certificate has been successfully unlocked!`;
-      certBox.style.display = "block";
-    } else {
-      verdict.innerText = "Exam Completed!";
-      verdict.style.color = "var(--accent-primary)";
-      summaryText.innerText = `You scored ${percent}%. You need at least 80% (${passThreshold}/${finalTestQuestions.length} correct) to earn the printable SRIVARDHAN certificate. Please study the lessons and try again!`;
-      certBox.style.display = "none";
-    }
-
-    // Load review board
-    const reviewContainer = document.getElementById("test-review-container");
-    reviewContainer.innerHTML = "";
-
-    finalTestQuestions.forEach((q, idx) => {
-      const userAnsIdx = this.testAnswers[idx];
-      const isCorrect = userAnsIdx === q.answerIndex;
-
-      const card = document.createElement("div");
-      card.className = `review-card ${isCorrect ? 'correct' : 'wrong'}`;
-      card.innerHTML = `
-        <div class="review-question">${idx + 1}. ${q.question}</div>
-        <div class="review-user-ans">Your Answer: <span style="color:${isCorrect ? '#385723' : '#c00000'};">${q.options[userAnsIdx]}</span></div>
-        ${!isCorrect ? `<div class="review-correct-ans">Correct Answer: <span style="color:#385723;">${q.options[q.answerIndex]}</span></div>` : ''}
-        <div class="review-explanation">${q.explanation}</div>
-      `;
-      reviewContainer.appendChild(card);
-    });
-
-    // Display results panel
-    document.getElementById("test-questions-panel").style.display = "none";
-    document.getElementById("test-results-panel").style.display = "block";
-  }
-
-  resetFinalTest() {
-    this.showFinalTestIntro();
-  }
-
-  generateAndPrintCertificate() {
-    const studentName = document.getElementById("student-name-input").value.trim();
-    if (!studentName) {
-      alert("Please enter your name to personalize the certificate.");
-      return;
-    }
-
-    let correctCount = 0;
-    this.testAnswers.forEach((ans, idx) => {
-      if (ans === finalTestQuestions[idx].answerIndex) correctCount++;
-    });
-    const percent = Math.round((correctCount / finalTestQuestions.length) * 100);
-
-    // Populate Print template details
-    document.getElementById("cert-recipient-name").innerText = studentName;
-    document.getElementById("cert-score-display").innerText = `${correctCount} / ${finalTestQuestions.length}`;
-    document.getElementById("cert-percent-display").innerText = `${percent}%`;
-
-    const chapterName = document.getElementById("chapter-select").options[this.activeChapter].text;
-    document.getElementById("cert-chapter-name").innerText = chapterName;
-    
-    // Set current date formatted nicely
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString("en-IN", {
-      year: "numeric", month: "long", day: "numeric"
-    });
-    document.getElementById("cert-date-display").innerText = `Date: ${formattedDate}`;
-
-    // Print
-    window.print();
-  }
-
-  // --- DYNAMIC MULTI-CHAPTER WATCH RENDERING ---
-  drawWatchContent(chapter, topic, ctx, w, h) {
-    const cx = w / 2;
-    const cy = h / 2;
-    const t = this.watchFrame;
-    const progress = (t % 300) / 300;
-
-    // Direct Chapter 1 drawing to the legacy draw methods
-    if (chapter === 0) {
-      if (topic === 0) this.drawTopic1Watch(ctx, w, h);
-      else if (topic === 1) this.drawTopic2Watch(ctx, w, h);
-      else if (topic === 2) this.drawTopic3Watch(ctx, w, h);
-      else if (topic === 3) this.drawTopic4Watch(ctx, w, h);
-      else if (topic === 4) this.drawTopic5Watch(ctx, w, h);
-      return;
-    }
-
-    // Colors
-    const primaryColor = this.theme === "dark" ? "#f59e0b" : "#b0813f";
-    const secondaryColor = this.theme === "dark" ? "#10b981" : "#2f5647";
-    const textColor = this.theme === "dark" ? "#f1f5f9" : "#121c2c";
-    const mutedColor = this.theme === "dark" ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)";
-
-    ctx.save();
-    ctx.lineWidth = 2;
-
-    if (chapter === 1) {
-      // Ch 2: Energy from the Sun
-      if (topic === 0) {
-        // Solar radiation and insolation
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Solar Radiation and Insolation", 20, 30);
-
-        // Draw Sun (Left)
-        ctx.fillStyle = "#ffaa00";
-        ctx.beginPath();
-        ctx.arc(80, cy, 50, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = "#ff5500";
-        ctx.stroke();
-
-        // Draw curved Earth (Right)
-        ctx.fillStyle = "#2a539b";
-        ctx.beginPath();
-        ctx.arc(w + 100, cy, 280, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = "#5da56e";
-        ctx.stroke();
-
-        // Draw rays
-        ctx.strokeStyle = "rgba(255,170,0,0.6)";
-        // Equatorial straight ray
-        ctx.beginPath();
-        ctx.moveTo(130, cy);
-        ctx.lineTo(w - 180, cy);
-        ctx.stroke();
-        ctx.fillStyle = "#ff3300";
-        ctx.fillText("Vertical Rays (Concentrated)", w - 310, cy - 10);
-
-        // Polar slanted ray
-        ctx.beginPath();
-        ctx.moveTo(120, cy - 30);
-        ctx.lineTo(w - 200, cy - 130);
-        ctx.stroke();
-        ctx.fillStyle = "#00aaff";
-        ctx.fillText("Slanted Rays (Spread Out)", w - 340, cy - 145);
-      } else if (topic === 1) {
-        // Temperature zones
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Earth Temperature Zones", 20, 30);
-
-        // Draw Earth sphere
-        ctx.strokeStyle = primaryColor;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 110, 0, 2*Math.PI);
-        ctx.stroke();
-
-        // Torrid Zone
-        ctx.fillStyle = "rgba(255, 69, 0, 0.2)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 110, -Math.PI/6, Math.PI/6);
-        ctx.lineTo(cx, cy);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#ff4500";
-        ctx.fillText("TORRID ZONE (Tropics)", cx + 130, cy + 5);
-
-        // Temperate Zone
-        ctx.fillStyle = "rgba(46, 139, 87, 0.2)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 110, -Math.PI*0.35, -Math.PI/6);
-        ctx.lineTo(cx, cy);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#2e8b57";
-        ctx.fillText("TEMPERATE ZONE", cx + 70, cy - 75);
-
-        // Frigid Zone
-        ctx.fillStyle = "rgba(30, 144, 255, 0.2)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 110, -Math.PI/2, -Math.PI*0.35);
-        ctx.lineTo(cx, cy);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = "#1e90ff";
-        ctx.fillText("FRIGID ZONE (Polar)", cx - 30, cy - 130);
-      } else if (topic === 2) {
-        // Land vs Water heating
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Land vs. Water Differential Heating", 20, 30);
-
-        // Land (Left)
-        ctx.fillStyle = "#8b5a2b";
-        ctx.fillRect(cx - 160, cy - 40, 140, 100);
-        ctx.fillStyle = textColor;
-        ctx.fillText("LAND (Heats Fast)", cx - 160, cy + 85);
-        
-        // Water (Right)
-        ctx.fillStyle = "#1e90ff";
-        ctx.fillRect(cx + 20, cy - 40, 140, 100);
-        ctx.fillStyle = textColor;
-        ctx.fillText("WATER (Heats Slow)", cx + 20, cy + 85);
-
-        // Heat waves
-        const waveY = cy - 40 - Math.abs(Math.sin(t * 0.05)) * 15;
-        ctx.strokeStyle = "#ff0000";
-        ctx.beginPath();
-        ctx.moveTo(cx - 120, cy);
-        ctx.quadraticCurveTo(cx - 100, waveY, cx - 80, cy);
-        ctx.stroke();
-
-        ctx.strokeStyle = "#4a90e2";
-        ctx.beginPath();
-        ctx.moveTo(cx + 60, cy);
-        ctx.quadraticCurveTo(cx + 80, cy - 40 - Math.abs(Math.sin(t * 0.02)) * 8, cx + 100, cy);
-        ctx.stroke();
-      }
-    } else if (chapter === 2) {
-      // Ch 3: Earth Movements and Seasons
-      if (topic === 0) {
-        // Rotation
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Earth Axis Rotation", 20, 30);
-
-        // Tilted axis line
-        ctx.strokeStyle = primaryColor;
-        ctx.beginPath();
-        ctx.moveTo(cx - 50, cy - 140);
-        ctx.lineTo(cx + 50, cy + 140);
-        ctx.stroke();
-
-        // Earth globe
-        ctx.fillStyle = "rgba(47, 86, 71, 0.15)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 100, 0, 2*Math.PI);
-        ctx.fill();
-
-        // Circle of illumination (vertical split)
-        ctx.fillStyle = "rgba(0,0,0,0.5)";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 100, -Math.PI/2, Math.PI/2);
-        ctx.fill();
-
-        // Rotation arrow
-        ctx.strokeStyle = "#ffaa00";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 120, -0.2, 0.2);
-        ctx.stroke();
-        ctx.fillStyle = "#ffaa00";
-        ctx.fillText("Rotation (West to East)", cx - 60, cy - 110);
-      } else if (topic === 1) {
-        // Revolution and Seasons
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Earth Revolution Orbit", 20, 30);
-
-        // Draw Sun (center)
-        ctx.fillStyle = "#ffaa00";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 25, 0, 2*Math.PI);
-        ctx.fill();
-
-        // Orbit ellipse
-        ctx.strokeStyle = "rgba(176,129,63,0.2)";
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, 180, 80, 0, 0, 2*Math.PI);
-        ctx.stroke();
-
-        // Earth positions
-        const ex = cx + Math.cos(progress * 2 * Math.PI) * 180;
-        const ey = cy + Math.sin(progress * 2 * Math.PI) * 80;
-        ctx.fillStyle = "#4a90e2";
-        ctx.beginPath();
-        ctx.arc(ex, ey, 12, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-      } else if (topic === 2) {
-        // Solstices and equinoxes
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Solstices & Equinoxes Position", 20, 30);
-
-        // Central Sun
-        ctx.fillStyle = "#ffaa00";
-        ctx.beginPath();
-        ctx.arc(cx, cy, 20, 0, 2*Math.PI);
-        ctx.fill();
-
-        // June Solstice (Left)
-        ctx.fillStyle = "#4a90e2";
-        ctx.beginPath();
-        ctx.arc(cx - 160, cy, 15, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.fillStyle = textColor;
-        ctx.fillText("June 21 (Summer Solstice)", cx - 240, cy + 35);
-
-        // Dec Solstice (Right)
-        ctx.beginPath();
-        ctx.arc(cx + 160, cy, 15, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.fillText("Dec 22 (Winter Solstice)", cx + 80, cy + 35);
-
-        // Equinoxes
-        ctx.beginPath();
-        ctx.arc(cx, cy - 60, 15, 0, 2*Math.PI);
-        ctx.fill();
-        ctx.fillText("March 21 (Equinox)", cx - 50, cy - 85);
-      }
-    } else if (chapter === 3) {
-      // Ch 4: Polar Regions
-      if (topic === 0) {
-        // Tundra and permafrost
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Tundra Soil layers (Permafrost)", 20, 30);
-
-        // Soil layers
-        ctx.fillStyle = "#8a6d4e"; // thawed active layer
-        ctx.fillRect(cx - 180, cy - 40, 360, 40);
-        ctx.fillStyle = "#5c6b80"; // permafrost ice-soil
-        ctx.fillRect(cx - 180, cy, 360, 100);
-
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText("Thawed top layer (Summer vegetation)", cx - 170, cy - 15);
-        ctx.fillText("Permanently Frozen Subsoil (PERMAFROST)", cx - 170, cy + 50);
-      } else if (topic === 1) {
-        // Polar wildlife
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Polar Wildlife blubber insulation", 20, 30);
-
-        // Whale blubber diagram
-        ctx.fillStyle = "rgba(47, 86, 71, 0.1)";
-        ctx.fillRect(cx - 160, cy - 60, 320, 120);
-        ctx.strokeStyle = primaryColor;
-        ctx.strokeRect(cx - 160, cy - 60, 320, 120);
-
-        ctx.fillStyle = "#8c6b3f"; // muscle
-        ctx.fillRect(cx - 120, cy - 40, 240, 80);
-        ctx.fillStyle = "#fcfaf6"; // blubber layer
-        ctx.strokeRect(cx - 120, cy - 40, 240, 80);
-        ctx.lineWidth = 10;
-        ctx.strokeStyle = "rgba(240,240,240,0.8)";
-        ctx.strokeRect(cx - 120, cy - 40, 240, 80);
-        ctx.lineWidth = 2; // reset
-
-        ctx.fillStyle = textColor;
-        ctx.fillText("Insulating Blubber layer (Fat)", cx - 80, cy - 45);
-        ctx.fillText("Core Muscles (Warm)", cx - 60, cy + 5);
-      } else if (topic === 2) {
-        // Inuit Igloo
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 13px 'Plus Jakarta Sans'";
-        ctx.fillText("Inuit Igloo Thermal Dynamics", 20, 30);
-
-        // Igloo outline
-        ctx.strokeStyle = primaryColor;
-        ctx.beginPath();
-        ctx.arc(cx, cy + 50, 80, Math.PI, 2*Math.PI);
-        ctx.stroke();
-        // floor
-        ctx.beginPath();
-        ctx.moveTo(cx - 80, cy + 50);
-        ctx.lineTo(cx + 80, cy + 50);
-        ctx.stroke();
-
-        ctx.fillStyle = "#ffaa00";
-        ctx.fillText("Inside: Warm (+15°C)", cx - 50, cy + 10);
-        ctx.fillStyle = "#00aaff";
-        ctx.fillText("Outside: Freezing (-30°C)", cx - 200, cy - 20);
-      }
-    } else {
-      // General fallbacks for Chapters 5-10
-      ctx.fillStyle = textColor;
-      ctx.font = "bold 14px 'Plus Jakarta Sans'";
-      ctx.textAlign = "center";
-      ctx.fillText(`Chapter ${chapter + 1} Visual Lecture`, cx, cy - 40);
-      ctx.font = "12px 'Plus Jakarta Sans'";
-      ctx.fillText(`Topic ${topic + 1}: ${topicsData[topic].title}`, cx, cy - 10);
-      
-      // Animated chalkboard loader circle
-      ctx.strokeStyle = primaryColor;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy + 40, 30, 0, progress * 2 * Math.PI);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
-  // --- DYNAMIC MULTI-CHAPTER EXPLORE SIMULATIONS ---
-  initExploreSimulation() {
-    const container = document.getElementById("sandbox-controls-container");
-    container.innerHTML = "";
-    
-    // Clear state
-    this.exploreState = {
-      topic: this.activeTopic,
-      canvas: this.exploreCanvas,
-      ctx: this.exploreCtx
-    };
-
-    const statusMsg = document.getElementById("explore-status-msg");
-    if (statusMsg) statusMsg.innerText = "";
-
-    // Set custom configurations for all chapters
-    const ch = this.activeChapter;
-    const tp = this.activeTopic;
-
-    if (ch === 0) {
-      // Legacy Chapter 1 sliders setup
-      if (tp === 0) {
-        this.exploreState.sliderX = this.exploreCanvas.width / 2;
-        this.exploreState.dragging = false;
-        container.innerHTML = `<p style="font-size:0.85rem; color:var(--text-secondary);"><strong>Drag the split slider</strong> to compare satellite photograph vs simplified map.</p>`;
-      } else if (tp === 1) {
-        this.exploreState.activeMap = 0;
-        container.innerHTML = `
-          <div style="display:flex; gap:0.5rem;">
-            <button class="watch-btn" onclick="app.setExploreMap(0)">Babylonian Tablet</button>
-            <button class="watch-btn" onclick="app.setExploreMap(1)">Al-Idrisi Map</button>
-            <button class="watch-btn" onclick="app.setExploreMap(2)">Mercator Grid</button>
-          </div>
-        `;
-      } else if (tp === 2) {
-        this.exploreState.surveyStep = 0;
-        this.exploreState.dialVal = 0;
-        this.exploreState.triangles = [];
-        this.renderTriangulationControls(container);
-      } else if (tp === 3) {
-        this.exploreState.layers = { relief: true, rainfall: false, population: false };
-        container.innerHTML = `
-          <div style="display:flex; gap:1.5rem; flex-wrap: wrap;">
-            <label><input type="checkbox" checked onchange="app.toggleThematicLayer('relief', this.checked)"> 🏔️ Relief</label>
-            <label><input type="checkbox" onchange="app.toggleThematicLayer('rainfall', this.checked)"> 🌧️ Rainfall</label>
-            <label><input type="checkbox" onchange="app.toggleThematicLayer('population', this.checked)"> 👥 Population</label>
-          </div>
-        `;
-      } else if (tp === 4) {
-        this.exploreState.heightVal = 120;
-        this.exploreState.profile = "gentle";
-        container.innerHTML = `
-          <div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:center;">
-            <label>Height: <span id="height-lbl">120m</span> <input type="range" min="50" max="200" value="120" oninput="app.setContourHeight(this.value)"></label>
-            <select onchange="app.setContourProfile(this.value)">
-              <option value="gentle">Gentle Slope</option>
-              <option value="steep">Steep Slope</option>
-              <option value="cliff">Cliff</option>
-            </select>
-          </div>
-        `;
-      }
-    } else if (ch === 1) {
-      // Ch 2: Sun Energy
-      if (tp === 0 || tp === 1) {
-        this.exploreState.latitude = 0;
-        container.innerHTML = `
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <label style="font-weight:700; color:var(--text-primary);">Select Latitude: <span id="lat-lbl" style="color:var(--accent-primary);">0° (Equator)</span></label>
-            <input type="range" min="-90" max="90" value="0" style="accent-color:var(--accent-primary);" oninput="app.updateLatitude(this.value)">
-          </div>
-        `;
-      } else if (tp === 2) {
-        this.exploreState.heatingTime = 0;
-        this.exploreState.landTemp = 28;
-        this.exploreState.waterTemp = 28;
-        container.innerHTML = `
-          <div style="display:flex; gap:1rem; align-items:center;">
-            <button class="primary-btn" onclick="app.triggerDifferentialHeating()">Heat Up Elements (10s)</button>
-            <span style="font-size:0.85rem; color:var(--text-secondary);" id="heating-stats">Initial State: Balanced at 28°C</span>
-          </div>
-        `;
-      }
-    } else if (ch === 2) {
-      // Ch 3: Seasons
-      this.exploreState.month = 0;
-      container.innerHTML = `
-        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap; width:100%;">
-          <label style="font-weight:700; color:var(--text-primary);">Orbit Month: <span id="month-lbl" style="color:var(--accent-primary);">January</span></label>
-          <input type="range" min="0" max="11" value="0" style="width:220px; accent-color:var(--accent-primary);" oninput="app.updateMonthOrbit(this.value)">
-        </div>
-      `;
-    } else if (ch === 3) {
-      // Ch 4: Polar Regions
-      this.exploreState.winterSeason = true;
-      container.innerHTML = `
-        <div style="display:flex; gap:1rem; align-items:center;">
-          <label style="font-weight:700; color:var(--text-primary);">Toggle Season:</label>
-          <button class="watch-btn" onclick="app.togglePolarSeason(true)">Polar Winter (Darkness)</button>
-          <button class="watch-btn" onclick="app.togglePolarSeason(false)">Polar Summer (24h Day)</button>
-        </div>
-      `;
-    } else if (ch === 4) {
-      // Ch 5: Forests
-      this.exploreState.loggingRate = 20;
-      this.exploreState.reforestOn = true;
-      container.innerHTML = `
-        <div style="display:flex; gap:2rem; align-items:center; flex-wrap:wrap;">
-          <label style="font-weight:700; color:var(--text-primary);">Logging Speed: <span id="log-lbl" style="color:var(--accent-primary);">20%</span> <input type="range" min="0" max="100" value="20" oninput="app.updateLogging(this.value)"></label>
-          <label style="font-weight:700; color:var(--text-primary); cursor:pointer;"><input type="checkbox" checked onchange="app.updateReforest(this.checked)"> Active Reforestation</label>
-        </div>
-      `;
-    } else if (ch === 5) {
-      // Ch 6: Mining
-      this.exploreState.miningMethod = "open";
-      this.exploreState.mineDepth = 15;
-      container.innerHTML = `
-        <div style="display:flex; gap:2rem; align-items:center; flex-wrap:wrap;">
-          <label style="font-weight:700; color:var(--text-primary);">Mining Depth: <span id="depth-lbl" style="color:var(--accent-primary);">15m</span> <input type="range" min="10" max="180" value="15" oninput="app.updateMineDepth(this.value)"></label>
-          <select onchange="app.updateMiningMethod(this.value)" style="padding:0.4rem 0.8rem; border-radius:6px; border:1px solid var(--border-color); font-family:var(--font-sans); outline:none;">
-            <option value="open">Open-Cast Pit Mining</option>
-            <option value="under">Underground Shaft Mining</option>
-          </select>
-        </div>
-      `;
-    } else if (ch === 6) {
-      // Ch 7: Banking
-      this.exploreState.reserveRatio = 10;
-      container.innerHTML = `
-        <div style="display:flex; align-items:center; gap:1rem;">
-          <label style="font-weight:700; color:var(--text-primary);">Reserve Ratio: <span id="reserve-lbl" style="color:var(--accent-primary);">10%</span></label>
-          <input type="range" min="5" max="50" value="10" style="accent-color:var(--accent-primary);" oninput="app.updateReserveRatio(this.value)">
-        </div>
-      `;
-    } else if (ch === 7) {
-      // Ch 8: Technology
-      this.exploreState.automationRate = 20;
-      container.innerHTML = `
-        <div style="display:flex; align-items:center; gap:1rem;">
-          <label style="font-weight:700; color:var(--text-primary);">Factory Automation: <span id="auto-lbl" style="color:var(--accent-primary);">20%</span></label>
-          <input type="range" min="0" max="100" value="20" style="accent-color:var(--accent-primary);" oninput="app.updateAutomation(this.value)">
-        </div>
-      `;
-    } else if (ch === 8) {
-      // Ch 9: Public Health
-      this.exploreState.healthBudget = 30; // public clinics percentage
-      container.innerHTML = `
-        <div style="display:flex; align-items:center; gap:1rem;">
-          <label style="font-weight:700; color:var(--text-primary);">State Health Budget for PHCs: <span id="budget-lbl" style="color:var(--accent-primary);">30%</span></label>
-          <input type="range" min="10" max="90" value="30" style="accent-color:var(--accent-primary);" oninput="app.updateHealthBudget(this.value)">
-        </div>
-      `;
-    } else if (ch === 9) {
-      // Ch 10: Landlords
-      this.exploreState.landlordTax = 40;
-      container.innerHTML = `
-        <div style="display:flex; align-items:center; gap:1rem;">
-          <label style="font-weight:700; color:var(--text-primary);">Feudal Rent Rate: <span id="rent-lbl" style="color:var(--accent-primary);">40%</span></label>
-          <input type="range" min="10" max="95" value="40" style="accent-color:var(--accent-primary);" oninput="app.updateLandlordTax(this.value)">
-        </div>
-      `;
-    }
-
-    this.renderExploreSandbox();
-  }
-
-  // --- DYNAMIC CONTROL UPDATES ENGINE ---
-  updateLatitude(val) {
-    this.exploreState.latitude = parseInt(val);
-    const lbl = document.getElementById("lat-lbl");
-    if (lbl) lbl.innerText = `${val}° ${val == 0 ? "(Equator)" : val > 0 ? "N" : "S"}`;
-    this.renderExploreSandbox();
-  }
-
-  triggerDifferentialHeating() {
-    let seconds = 0;
-    const statsEl = document.getElementById("heating-stats");
-    this.exploreState.landTemp = 28;
-    this.exploreState.waterTemp = 28;
-
-    const timer = setInterval(() => {
-      seconds++;
-      this.exploreState.landTemp += 2.8; // heats up fast
-      this.exploreState.waterTemp += 0.8; // heats up slow
-      
-      if (statsEl) {
-        statsEl.innerText = `Heating: ${seconds}s | Land: ${this.exploreState.landTemp.toFixed(1)}°C | Water: ${this.exploreState.waterTemp.toFixed(1)}°C`;
-      }
-      this.renderExploreSandbox();
-
-      if (seconds >= 10) clearInterval(timer);
-    }, 200);
-  }
-
-  updateMonthOrbit(val) {
-    const monthsList = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    this.exploreState.month = parseInt(val);
-    const lbl = document.getElementById("month-lbl");
-    if (lbl) lbl.innerText = monthsList[val];
-    this.renderExploreSandbox();
-  }
-
-  togglePolarSeason(isWinter) {
-    this.exploreState.winterSeason = isWinter;
-    this.renderExploreSandbox();
-  }
-
-  updateLogging(val) {
-    this.exploreState.loggingRate = parseInt(val);
-    const lbl = document.getElementById("log-lbl");
-    if (lbl) lbl.innerText = `${val}%`;
-    this.renderExploreSandbox();
-  }
-
-  updateReforest(checked) {
-    this.exploreState.reforestOn = checked;
-    this.renderExploreSandbox();
-  }
-
-  updateMineDepth(val) {
-    this.exploreState.mineDepth = parseInt(val);
-    const lbl = document.getElementById("depth-lbl");
-    if (lbl) lbl.innerText = `${val} meters`;
-    this.renderExploreSandbox();
-  }
-
-  updateMiningMethod(val) {
-    this.exploreState.miningMethod = val;
-    this.renderExploreSandbox();
-  }
-
-  updateReserveRatio(val) {
-    this.exploreState.reserveRatio = parseInt(val);
-    const lbl = document.getElementById("reserve-lbl");
-    if (lbl) lbl.innerText = `${val}%`;
-    this.renderExploreSandbox();
-  }
-
-  updateAutomation(val) {
-    this.exploreState.automationRate = parseInt(val);
-    const lbl = document.getElementById("auto-lbl");
-    if (lbl) lbl.innerText = `${val}%`;
-    this.renderExploreSandbox();
-  }
-
-  updateHealthBudget(val) {
-    this.exploreState.healthBudget = parseInt(val);
-    const lbl = document.getElementById("budget-lbl");
-    if (lbl) lbl.innerText = `${val}%`;
-    this.renderExploreSandbox();
-  }
-
-  updateLandlordTax(val) {
-    this.exploreState.landlordTax = parseInt(val);
-    const lbl = document.getElementById("rent-lbl");
-    if (lbl) lbl.innerText = `${val}%`;
-    this.renderExploreSandbox();
-  }
-
-  // --- DYNAMIC MULTI-CHAPTER EXPLORE DRAWINGS ---
-  drawExploreContent(chapter, topic, ctx, w, h) {
-    // If Chapter 1, delegate to existing sandboxes
-    if (chapter === 0) {
-      if (topic === 0) this.drawTopic1Sandbox(ctx, w, h);
-      else if (topic === 1) this.drawTopic2Sandbox(ctx, w, h);
-      else if (topic === 2) this.drawTopic3Sandbox(ctx, w, h);
-      else if (topic === 3) this.drawTopic4Sandbox(ctx, w, h);
-      else if (topic === 4) this.drawTopic5Sandbox(ctx, w, h);
-      return;
-    }
-
-    const primaryColor = this.theme === "dark" ? "#f59e0b" : "#b0813f";
-    const secondaryColor = this.theme === "dark" ? "#10b981" : "#2f5647";
-    const textColor = this.theme === "dark" ? "#f1f5f9" : "#121c2c";
-    const boxBg = this.theme === "dark" ? "#1b2138" : "#ffffff";
-
-    ctx.save();
-    ctx.lineWidth = 2;
-
-    if (chapter === 1) {
-      // Ch 2: Sun Energy
-      if (topic === 0 || topic === 1) {
-        // Insolation angle simulator
-        const lat = this.exploreState.latitude || 0;
-        const rad = lat * Math.PI / 180;
-
-        // Draw Earth arc
-        ctx.strokeStyle = primaryColor;
-        ctx.beginPath();
-        ctx.arc(w/2, h + 100, 200, Math.PI, 2*Math.PI);
-        ctx.stroke();
-
-        // Ray angle calculation
-        ctx.strokeStyle = "#ff9900";
-        ctx.lineWidth = 3;
-        const targetX = w/2 + Math.sin(rad) * 200;
-        const targetY = h + 100 - Math.cos(rad) * 200;
-
-        ctx.beginPath();
-        ctx.moveTo(targetX, targetY - 140);
-        ctx.lineTo(targetX, targetY);
-        ctx.stroke();
-
-        // Draw normal vector at intersection
-        ctx.strokeStyle = "#ff0000";
-        ctx.beginPath();
-        ctx.moveTo(targetX, targetY);
-        ctx.lineTo(targetX + Math.sin(rad)*40, targetY - Math.cos(rad)*40);
-        ctx.stroke();
-
-        // Stats Box
-        ctx.fillStyle = boxBg;
-        ctx.fillRect(30, 40, 240, 100);
-        ctx.strokeStyle = primaryColor;
-        ctx.strokeRect(30, 40, 240, 100);
-
-        ctx.fillStyle = textColor;
-        ctx.font = "12px sans-serif";
-        ctx.fillText(`Latitude: ${lat}°`, 45, 65);
-        ctx.fillText(`Ray Strike Angle: ${90 - Math.abs(lat)}°`, 45, 85);
-        ctx.fillText(`Heat Intensity: ${Math.round(Math.cos(rad) * 100)}%`, 45, 105);
-      } else if (topic === 2) {
-        // Land vs Water temp values
-        const lT = this.exploreState.landTemp || 28;
-        const wT = this.exploreState.waterTemp || 28;
-
-        // Render thermometer bars
-        ctx.fillStyle = "#8c6b3f";
-        ctx.fillRect(100, h - 50 - lT * 3, 50, lT * 3);
-        ctx.fillStyle = "#4a90e2";
-        ctx.fillRect(w - 150, h - 50 - wT * 3, 50, wT * 3);
-
-        ctx.fillStyle = textColor;
-        ctx.font = "bold 14px sans-serif";
-        ctx.fillText(`Land: ${lT.toFixed(1)}°C`, 90, h - 60 - lT * 3);
-        ctx.fillText(`Water: ${wT.toFixed(1)}°C`, w - 165, h - 60 - wT * 3);
-      }
-    } else if (chapter === 2) {
-      // Ch 3: Seasons Orbit Sandbox
-      const monthIdx = this.exploreState.month || 0;
-      const angle = (monthIdx * 30) * Math.PI / 180;
-
-      // Draw orbit path
-      ctx.strokeStyle = "rgba(176,129,63,0.15)";
-      ctx.beginPath();
-      ctx.ellipse(w/2, h/2, 220, 110, 0, 0, 2*Math.PI);
-      ctx.stroke();
-
-      // Central Sun
-      ctx.fillStyle = "#ffaa00";
-      ctx.beginPath();
-      ctx.arc(w/2, h/2, 30, 0, 2*Math.PI);
-      ctx.fill();
-
-      // Earth position
-      const ex = w/2 + Math.cos(angle) * 220;
-      const ey = h/2 + Math.sin(angle) * 110;
-
-      // Earth body
-      ctx.fillStyle = "#3b5998";
-      ctx.beginPath();
-      ctx.arc(ex, ey, 18, 0, 2*Math.PI);
-      ctx.fill();
-      ctx.strokeStyle = "#fff";
-      ctx.stroke();
-
-      // Tilted axis line on Earth
-      ctx.strokeStyle = "#ff0000";
-      ctx.beginPath();
-      ctx.moveTo(ex - 8, ey - 22);
-      ctx.lineTo(ex + 8, ey + 22);
-      ctx.stroke();
-
-      // Stats card
-      ctx.fillStyle = boxBg;
-      ctx.fillRect(w - 280, 40, 240, 100);
-      ctx.strokeStyle = primaryColor;
-      ctx.strokeRect(w - 280, 40, 240, 100);
-
-      ctx.fillStyle = textColor;
-      ctx.font = "12px sans-serif";
-      const seasons = ["Winter", "Winter", "Spring Equinox", "Summer", "Summer", "Summer Solstice", "Monsoon", "Autumn", "Autumn Equinox", "Winter", "Winter", "Winter"];
-      ctx.fillText(`Month: ${monthIdx + 1}`, w - 265, 65);
-      ctx.fillText(`Season: ${seasons[monthIdx]}`, w - 265, 85);
-      ctx.fillText(`Hemi Tilt: ${monthIdx >= 3 && monthIdx <= 8 ? "North Leaning" : "South Leaning"}`, w - 265, 105);
-    } else if (chapter === 3) {
-      // Ch 4: Polar Regions Sandbox
-      const isWinter = this.exploreState.winterSeason;
-
-      // Draw polar background
-      ctx.fillStyle = isWinter ? "#0b0f19" : "#e6f2ff";
-      ctx.fillRect(0, 0, w, h);
-
-      // Ice layer
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, h - 80, w, 80);
-
-      // Inuit Igloo (if winter) or skin tent (if summer)
-      if (isWinter) {
-        ctx.strokeStyle = "#a0b0c0";
-        ctx.beginPath();
-        ctx.arc(w/2, h - 80, 60, Math.PI, 2*Math.PI);
-        ctx.stroke();
-        ctx.fillStyle = "#fff";
-        ctx.fill();
-        ctx.fillStyle = "#ffaa00";
-        ctx.font = "bold 13px sans-serif";
-        ctx.fillText("Igloo (Traps Heat)", w/2 - 50, h - 110);
-      } else {
-        // Tent
-        ctx.strokeStyle = "#8b5a2b";
-        ctx.beginPath();
-        ctx.moveTo(w/2 - 50, h - 80);
-        ctx.lineTo(w/2, h - 160);
-        ctx.lineTo(w/2 + 50, h - 80);
-        ctx.closePath();
-        ctx.stroke();
-        ctx.fillStyle = "#e0a96d";
-        ctx.fill();
-        ctx.fillStyle = textColor;
-        ctx.fillText("Skin Tent (Summer)", w/2 - 50, h - 90);
-      }
-
-      ctx.fillStyle = textColor;
-      ctx.font = "bold 12px sans-serif";
-      ctx.fillText(isWinter ? "Polar Night (24h Darkness)" : "Midnight Sun (24h Daylight)", 30, 40);
-    } else if (chapter === 4) {
-      // Ch 5: Forests logging
-      const logRate = this.exploreState.loggingRate || 20;
-      const ref = this.exploreState.reforestOn;
-
-      const health = Math.max(0, Math.min(100, 100 - logRate + (ref ? 30 : 0)));
-
-      // Draw forests trees (represented by green stalks)
-      const count = Math.round(health * 0.15);
-      for (let i = 0; i < count; i++) {
-        const tx = 50 + (i * 45) % (w - 100);
-        const ty = h - 60 - (i * 10) % 80;
-        
-        ctx.fillStyle = "#8b5a2b";
-        ctx.fillRect(tx - 3, ty, 6, h - ty);
-        
-        ctx.fillStyle = "rgba(46, 139, 87, 0.8)";
-        ctx.beginPath();
-        ctx.arc(tx, ty, 15, 0, 2*Math.PI);
-        ctx.fill();
-      }
-
-      // Stats HUD
-      ctx.fillStyle = boxBg;
-      ctx.fillRect(30, 40, 240, 100);
-      ctx.strokeStyle = primaryColor;
-      ctx.strokeRect(30, 40, 240, 100);
-
-      ctx.fillStyle = textColor;
-      ctx.font = "12px sans-serif";
-      ctx.fillText(`Logging Rate: ${logRate}%`, 45, 65);
-      ctx.fillText(`Reforestation: ${ref ? "ON" : "OFF"}`, 45, 85);
-      ctx.fillText(`Forest Health Index: ${health}%`, 45, 105);
-    } else if (chapter === 5) {
-      // Ch 6: Mining depth sandbox
-      const method = this.exploreState.miningMethod;
-      const depth = this.exploreState.mineDepth;
-
-      // Draw surface layer
-      ctx.fillStyle = "#8b5a2b";
-      ctx.fillRect(0, h - 120, w, 120);
-
-      if (method === "open") {
-        // Open-cast terraced pit
-        ctx.fillStyle = this.theme === "dark" ? "#0a0f1d" : "#faf8f5";
-        ctx.beginPath();
-        ctx.moveTo(w/2 - 120, h - 120);
-        ctx.lineTo(w/2 - 60, h - 120 + depth/2);
-        ctx.lineTo(w/2 + 60, h - 120 + depth/2);
-        ctx.lineTo(w/2 + 120, h - 120);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = primaryColor;
-        ctx.stroke();
-
-        ctx.fillStyle = textColor;
-        ctx.fillText("Open-Cast Pit Terrace", w/2 - 60, h - 100);
-      } else {
-        // Underground shaft
-        ctx.strokeStyle = "#ffffff";
-        ctx.beginPath();
-        ctx.moveTo(w/2 - 20, h - 120);
-        ctx.lineTo(w/2 - 20, h - 120 + depth);
-        ctx.lineTo(w/2 + 20, h - 120 + depth);
-        ctx.lineTo(w/2 + 20, h - 120);
-        ctx.stroke();
-
-        // Elevator lift
-        ctx.fillStyle = primaryColor;
-        ctx.fillRect(w/2 - 15, h - 120 + depth - 20, 30, 20);
-
-        ctx.fillStyle = "#ff0000";
-        ctx.fillText("Underground Tunnel", w/2 - 50, h - 120 + depth + 20);
-      }
-    } else if (chapter === 6) {
-      // Ch 7: Credit creation table
-      const reserve = this.exploreState.reserveRatio || 10;
-      const multiplier = (100 / reserve).toFixed(1);
-
-      ctx.fillStyle = boxBg;
-      ctx.fillRect(w/2 - 200, h/2 - 140, 400, 240);
-      ctx.strokeStyle = primaryColor;
-      ctx.strokeRect(w/2 - 200, h/2 - 140, 400, 240);
-
-      ctx.fillStyle = textColor;
-      ctx.font = "bold 14px sans-serif";
-      ctx.fillText("Credit Multiplier Ledger", w/2 - 90, h/2 - 110);
-      ctx.font = "12px monospace";
-      ctx.fillText(`Initial Deposit: Rs 10,000`, w/2 - 170, h/2 - 70);
-      ctx.fillText(`Reserve Ratio:   ${reserve}%`, w/2 - 170, h/2 - 40);
-      ctx.fillText(`Multiplier:      ${multiplier}x`, w/2 - 170, h/2 - 10);
-      
-      const totalCredit = (10000 * multiplier).toLocaleString("en-IN");
-      ctx.fillStyle = secondaryColor;
-      ctx.fillText(`Total Money Supply: Rs ${totalCredit}`, w/2 - 170, h/2 + 40);
-    } else if (chapter === 7) {
-      // Ch 8: Industrial automation
-      const autoRate = this.exploreState.automationRate || 20;
-      
-      const output = Math.round(100 + autoRate * 8);
-      const jobs = Math.max(5, Math.round(100 - autoRate * 0.95));
-
-      // Draw stats indicators
-      ctx.fillStyle = boxBg;
-      ctx.fillRect(50, 40, w - 100, 160);
-      ctx.strokeStyle = primaryColor;
-      ctx.strokeRect(50, 40, w - 100, 160);
-
-      ctx.fillStyle = textColor;
-      ctx.font = "bold 15px sans-serif";
-      ctx.fillText("Automation & Workforce Indicators", 70, 70);
-      
-      ctx.font = "13px sans-serif";
-      ctx.fillText(`Automation Rate: ${autoRate}%`, 75, 110);
-      ctx.fillText(`Production Output: ${output} rolls/day (+${autoRate * 8}%)`, 75, 140);
-      ctx.fillText(`Workforce Employed: ${jobs} Artisans (-${autoRate}%)`, 75, 170);
-    } else if (chapter === 8) {
-      // Ch 9: Public health budget allocation
-      const budget = this.exploreState.healthBudget || 30;
-      const deathRate = Math.max(5, 75 - budget * 0.7);
-
-      ctx.fillStyle = boxBg;
-      ctx.fillRect(50, 40, w - 100, 160);
-      ctx.strokeStyle = primaryColor;
-      ctx.strokeRect(50, 40, w - 100, 160);
-
-      ctx.fillStyle = textColor;
-      ctx.font = "bold 14px sans-serif";
-      ctx.fillText("Healthcare Budget Allocation Impact", 70, 70);
-      ctx.font = "13px sans-serif";
-      ctx.fillText(`Budget Allocated to local PHCs: ${budget}%`, 75, 110);
-      ctx.fillText(`Access to Safe Drinking Water: ${Math.min(100, 40 + budget * 0.6)}%`, 75, 140);
-      ctx.fillText(`Infant Mortality Rate (per 1k): ${deathRate.toFixed(1)} deaths`, 75, 170);
-    } else if (chapter === 9) {
-      // Ch 10: Landlords taxes
-      const tax = this.exploreState.landlordTax || 40;
-      const defaultRisk = Math.round(tax * 0.95);
-      const peasantRevolt = tax > 70 ? "EXTREME DANGER" : tax > 50 ? "HIGH RISK" : "STABLE";
-
-      ctx.fillStyle = boxBg;
-      ctx.fillRect(50, 40, w - 100, 160);
-      ctx.strokeStyle = primaryColor;
-      ctx.strokeRect(50, 40, w - 100, 160);
-
-      ctx.fillStyle = textColor;
-      ctx.font = "bold 14px sans-serif";
-      ctx.fillText("Landlord Feudal Revenue Simulator", 70, 70);
-      ctx.font = "13px sans-serif";
-      ctx.fillText(`Land Rent Rate: ${tax}% of harvest`, 75, 110);
-      ctx.fillText(`Peasant Tax Default Risk: ${defaultRisk}%`, 75, 140);
-      ctx.fillText(`Peasant Rebellion Risk: ${peasantRevolt}`, 75, 170);
-    }
-
-    ctx.restore();
-  }
+    draw();
 }
 
-// Instantiate global app engine
-const app = new LearningApp();
+// Populate Chapter dropdown in header
+function populateChapterDropdown() {
+    const dropdown = document.getElementById("chapter-select");
+    dropdown.innerHTML = "";
+    syllabusData.forEach((ch, idx) => {
+        const opt = document.createElement("option");
+        opt.value = idx;
+        opt.textContent = `Ch ${ch.chapterNum}: ${ch.title}`;
+        dropdown.appendChild(opt);
+    });
+    
+    dropdown.onchange = (e) => {
+        selectChapter(parseInt(e.target.value));
+    };
+}
+
+// Render Sidebar topics accordion
+function renderSidebarAccordion() {
+    const container = document.getElementById("chapters-accordion");
+    container.innerHTML = "";
+    
+    const list = document.createElement("ul");
+    list.className = "sidebar-topic-list";
+    
+    const ch = getActiveChapter();
+    ch.topics.forEach((t, tIdx) => {
+        const li = document.createElement("li");
+        const isCompleted = userProgress.completedChapters[activeChapterIdx] ? "completed" : "";
+        const isActive = (tIdx === activeTopicIdx && document.getElementById("container-study-desk").classList.contains("active")) ? "active" : "";
+        
+        li.innerHTML = `
+            <button class="sidebar-topic-btn ${isActive} ${isCompleted}" id="side-topic-btn-${tIdx}">
+                <i class="${isCompleted ? 'fa-solid fa-circle-check' : 'fa-regular fa-circle'}"></i>
+                <span>Topic ${t.topicNum}: ${t.title}</span>
+            </button>
+        `;
+        
+        li.querySelector("button").onclick = () => {
+            selectTopic(activeChapterIdx, tIdx);
+        };
+        list.appendChild(li);
+    });
+    container.appendChild(list);
+}
+
+// Render Dashboard chapter boxes
+function renderDashboardChapters() {
+    const grid = document.getElementById("dashboard-chapters-grid");
+    grid.innerHTML = "";
+    
+    syllabusData.forEach((ch, idx) => {
+        const card = document.createElement("div");
+        card.className = "chapter-road-card";
+        if (idx === activeChapterIdx) {
+            card.style.borderColor = "var(--gold-color)";
+            card.style.background = "rgba(212,175,55,0.02)";
+        }
+        card.onclick = () => {
+            selectChapter(idx);
+            selectTopic(idx, 0);
+        };
+        
+        const isCompleted = userProgress.completedChapters[idx];
+        const pct = isCompleted ? 100 : 0;
+        
+        let statusText = "Not Started";
+        let statusClass = "active";
+        if (isCompleted) {
+            statusText = "Completed";
+            statusClass = "completed";
+        }
+        
+        card.innerHTML = `
+            <div class="chapter-road-header">
+                <span class="chapter-road-num">Chapter ${ch.chapterNum}</span>
+                <span class="chapter-road-status-tag ${statusClass}">${statusText}</span>
+            </div>
+            <h3>${ch.title}</h3>
+            <p>${ch.summary}</p>
+            <div class="chapter-road-footer">
+                <span class="chapter-road-progress-label">Status: ${pct}%</span>
+                <span class="chapter-road-action-label" style="color:var(--gold-color);">Start Quest <i class="fa-solid fa-chevron-right"></i></span>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// Handle select chapter
+function selectChapter(idx) {
+    activeChapterIdx = idx;
+    activeTopicIdx = 0;
+    
+    // Update Chapter Selector Dropdown value
+    document.getElementById("chapter-select").value = idx;
+    
+    // Auto shift background theme class
+    const body = document.body;
+    body.className = body.classList.contains("light-theme") ? "light-theme" : "dark-theme";
+    body.classList.add(`theme-ch-${idx + 1}`);
+    
+    // Update Dashboard Welcome Hero
+    const ch = getActiveChapter();
+    document.getElementById("dash-chapter-title").textContent = `Chapter ${ch.chapterNum}: ${ch.title}`;
+    document.getElementById("dash-chapter-desc").textContent = ch.description;
+    
+    // Update Dashboard Metrics dynamically
+    document.getElementById("stat-topics-count").textContent = `${ch.topics.length} Topics`;
+    document.getElementById("stat-questions-count").textContent = `${ch.topics.length * 5} Questions`;
+    
+    // Update breadcrumbs
+    document.getElementById("breadcrumb-chapter").textContent = `Chapter ${ch.chapterNum}: ${ch.title}`;
+    document.getElementById("breadcrumb-topic").textContent = "Dashboard Overview";
+    
+    renderSidebarAccordion();
+    renderDashboardChapters();
+}
+
+// Shift content container view
+function selectTopic(chIdx, tIdx) {
+    selectChapter(chIdx);
+    activeTopicIdx = tIdx;
+    
+    // Set Sidebar Nav Active Highlighting
+    document.querySelectorAll(".nav-item-btn").forEach(b => b.classList.remove("active"));
+    renderSidebarAccordion();
+    
+    // Switch to workspace container
+    document.querySelectorAll(".content-container").forEach(c => c.classList.remove("active"));
+    document.getElementById("container-study-desk").classList.add("active");
+    
+    // Update breadcrumbs
+    const ch = getActiveChapter();
+    const t = getActiveTopic();
+    document.getElementById("breadcrumb-chapter").textContent = `Chapter ${ch.chapterNum}: ${ch.title}`;
+    document.getElementById("breadcrumb-topic").textContent = `Topic ${t.topicNum}: ${t.title}`;
+    
+    loadTopicData();
+    selectTab("read");
+}
+
+function selectDashboard() {
+    document.querySelectorAll(".nav-item-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("btn-nav-dashboard").classList.add("active");
+    
+    document.querySelectorAll(".content-container").forEach(c => c.classList.remove("active"));
+    document.getElementById("container-dashboard").classList.add("active");
+    
+    clearAnimationLoops();
+    
+    const ch = getActiveChapter();
+    document.getElementById("breadcrumb-chapter").textContent = `Chapter ${ch.chapterNum}: ${ch.title}`;
+    document.getElementById("breadcrumb-topic").textContent = "Dashboard Overview";
+    
+    renderDashboardChapters();
+    renderSidebarAccordion();
+}
+
+function selectExamDashboard() {
+    document.querySelectorAll(".nav-item-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("btn-nav-exam").classList.add("active");
+    
+    document.querySelectorAll(".content-container").forEach(c => c.classList.remove("active"));
+    document.getElementById("container-exam").classList.add("active");
+    
+    clearAnimationLoops();
+    
+    document.getElementById("breadcrumb-chapter").textContent = "Certification Center";
+    document.getElementById("breadcrumb-topic").textContent = "Exam Registration";
+    
+    // Populate candidate name
+    const input = document.getElementById("input-student-name");
+    if (userProgress.studentName) {
+        input.value = userProgress.studentName;
+    }
+    
+    // Populate Exam Chapters description list
+    const list = document.getElementById("exam-chapter-list");
+    list.innerHTML = "";
+    
+    const row = document.createElement("div");
+    row.className = "exam-chapter-radio checked-border";
+    row.innerHTML = `
+        <i class="fa-solid fa-circle-check" style="color:var(--gold-color);"></i>
+        <span>Complete Course Exam (Chapters 1-10 Dynamic Test Pool)</span>
+    `;
+    list.appendChild(row);
+    
+    document.getElementById("exam-stage-panel").classList.add("hide");
+    document.getElementById("exam-results-panel").classList.add("hide");
+    document.querySelector(".exam-setup-box").classList.remove("hide");
+    
+    if (examTimerInterval) clearInterval(examTimerInterval);
+}
+
+// Tab navigation within study workspace
+function selectTab(tabName) {
+    activeTab = tabName;
+    
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        if (btn.getAttribute("data-tab") === tabName) {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+    });
+    
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById(`panel-${tabName}`).classList.add("active");
+    
+    clearAnimationLoops();
+    
+    if (tabName === "watch") {
+        startWatchAnimation(activeChapterIdx);
+    } else if (tabName === "explore") {
+        initExploreSimulation(activeChapterIdx);
+    } else if (tabName === "practice") {
+        initPracticeQuiz(activeChapterIdx);
+    }
+}
+
+// Clear any canvas rendering loops
+function clearAnimationLoops() {
+    if (watchAnimationId) {
+        cancelAnimationFrame(watchAnimationId);
+        watchAnimationId = null;
+    }
+    if (activeExploreAnimationId) {
+        cancelAnimationFrame(activeExploreAnimationId);
+        activeExploreAnimationId = null;
+    }
+}
+
+// Load dynamic data into active topic desk tabs
+function loadTopicData() {
+    const ch = getActiveChapter();
+    const t = getActiveTopic();
+    
+    // 1. Load READ tab
+    document.getElementById("read-explanation").innerHTML = t.explanation;
+    document.getElementById("read-remember").innerHTML = `<p>${t.remember}</p>`;
+    
+    const tbody = document.getElementById("read-vocab-list");
+    tbody.innerHTML = "";
+    t.vocab.forEach(v => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${v.word}</td><td>${v.meaning}</td>`;
+        tbody.appendChild(tr);
+    });
+    
+    // 2. Load REVISE tab
+    const summaryUl = document.getElementById("revise-summary-list");
+    summaryUl.innerHTML = "";
+    t.summary.forEach(point => {
+        const li = document.createElement("li");
+        li.textContent = point;
+        summaryUl.appendChild(li);
+    });
+    document.getElementById("revise-real-life").innerHTML = `<p>${t.realLife}</p>`;
+    document.getElementById("revise-fun-fact").innerHTML = `<p>${t.funFact}</p>`;
+    
+    // Reset watch mode
+    watchSubMode = "animation";
+    const btnAnim = document.getElementById("btn-toggle-animation");
+    const btnVid = document.getElementById("btn-toggle-video");
+    if (btnAnim && btnVid) {
+        btnAnim.classList.add("active");
+        btnVid.classList.remove("active");
+    }
+    
+    updateTopicProgressRing();
+    document.getElementById("desk-footer-indicator").textContent = `Topic ${t.topicNum}: ${t.title}`;
+}
+
+function updateTopicProgressRing() {
+    const isCompleted = userProgress.completedChapters[activeChapterIdx];
+    const percentage = isCompleted ? 100 : 40;
+    
+    document.getElementById("desk-progress-percent").textContent = `${percentage}%`;
+    const circle = document.getElementById("desk-progress-bar");
+    if (circle) {
+        const radius = circle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        const offset = circumference - (percentage / 100) * circumference;
+        circle.style.strokeDashoffset = offset;
+    }
+}
+
+// Event registration
+function registerEventHandlers() {
+    // Magic entrance portal enter button
+    document.getElementById("btn-magic-enter").onclick = () => {
+        const portal = document.getElementById("magic-entrance");
+        portal.style.opacity = "0";
+        setTimeout(() => {
+            portal.classList.add("hide");
+            document.querySelector(".app-container").classList.remove("hide");
+            document.body.classList.remove("theme-landing");
+            selectDashboard();
+        }, 800);
+    };
+
+    // Sidebar navigation buttons
+    document.getElementById("btn-nav-dashboard").onclick = selectDashboard;
+    document.getElementById("btn-nav-exam").onclick = selectExamDashboard;
+    
+    // Welcome Hero start button
+    document.getElementById("btn-start-learning").onclick = () => {
+        selectTopic(activeChapterIdx, 0);
+    };
+    
+    // Workspace tabs
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.onclick = () => {
+            selectTab(btn.getAttribute("data-tab"));
+        };
+    });
+    
+    // Workspace desk prev/next footers
+    document.getElementById("desk-prev-topic-btn").onclick = () => {
+        const ch = getActiveChapter();
+        if (activeTopicIdx > 0) {
+            selectTopic(activeChapterIdx, activeTopicIdx - 1);
+        } else if (activeChapterIdx > 0) {
+            const prevCh = syllabusData[activeChapterIdx - 1];
+            selectTopic(activeChapterIdx - 1, prevCh.topics.length - 1);
+        } else {
+            selectDashboard();
+        }
+    };
+    
+    document.getElementById("desk-next-topic-btn").onclick = () => {
+        const ch = getActiveChapter();
+        if (activeTopicIdx < ch.topics.length - 1) {
+            selectTopic(activeChapterIdx, activeTopicIdx + 1);
+        } else if (activeChapterIdx < 9) {
+            selectTopic(activeChapterIdx + 1, 0);
+        } else {
+            selectExamDashboard();
+        }
+    };
+    
+    // Global dark/light theme toggle
+    document.getElementById("theme-toggle-btn").onclick = () => {
+        const body = document.body;
+        const icon = document.getElementById("theme-toggle-btn").querySelector("i");
+        
+        if (body.classList.contains("light-theme")) {
+            body.classList.remove("light-theme");
+            body.classList.add("dark-theme");
+            icon.className = "fa-solid fa-moon";
+        } else {
+            body.classList.remove("dark-theme");
+            body.classList.add("light-theme");
+            icon.className = "fa-solid fa-sun";
+        }
+    };
+    
+    // Exam launch settings
+    document.getElementById("btn-launch-exam").onclick = startExamProcess;
+    
+    // Certificate Print Trigger
+    document.getElementById("btn-print-action").onclick = () => {
+        window.print();
+    };
+    
+    document.getElementById("btn-close-cert-modal").onclick = () => {
+        document.getElementById("certificate-modal").classList.add("hide");
+    };
+}
+
+/* ==========================================================================
+   WATCH: CANVAS ANIMATION LOOPS
+   ========================================================================== */
+function startWatchAnimation(chapIdx) {
+    const mediaContainer = document.getElementById("watch-media-canvas");
+    const mediaDesc = document.getElementById("watch-media-description");
+    const t = getActiveTopic();
+    
+    const togglePanel = document.getElementById("watch-media-toggle");
+    const btnAnim = document.getElementById("btn-toggle-animation");
+    const btnVid = document.getElementById("btn-toggle-video");
+    
+    if (togglePanel) {
+        if (t.youtubeId) {
+            togglePanel.classList.remove("hide");
+            if (watchSubMode === "video") {
+                btnAnim.classList.remove("active");
+                btnVid.classList.add("active");
+            } else {
+                btnAnim.classList.add("active");
+                btnVid.classList.remove("active");
+            }
+        } else {
+            togglePanel.classList.add("hide");
+            watchSubMode = "animation";
+        }
+    }
+    
+    btnAnim.onclick = () => {
+        watchSubMode = "animation";
+        startWatchAnimation(chapIdx);
+    };
+    
+    btnVid.onclick = () => {
+        watchSubMode = "video";
+        startWatchAnimation(chapIdx);
+    };
+    
+    if (watchSubMode === "video" && t.youtubeId) {
+        mediaContainer.innerHTML = `
+            <iframe src="https://www.youtube.com/embed/${t.youtubeId}?autoplay=1&rel=0" 
+                    title="Educational Video" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+            </iframe>
+        `;
+        mediaDesc.innerHTML = `<strong>Telangana SCERT Video:</strong> Learn about the core structures of <em>"${syllabusData[chapIdx].title}"</em>.`;
+    } else {
+        mediaContainer.innerHTML = `<canvas id="watch-canvas" width="680" height="360"></canvas>`;
+        const canvas = document.getElementById("watch-canvas");
+        const ctx = canvas.getContext("2d");
+        let frame = 0;
+        
+        function loop() {
+            if (!canvas || !ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGridBackground(ctx, canvas.width, canvas.height);
+            
+            const watchKey = activeChapterIdx + "-" + activeTopicIdx;
+            
+            switch (watchKey) {
+                case "0-0":
+                    drawCh1T1Watch(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Sumerian and Babylonian Mapping Eras:</strong> Visualizing how geographic representations evolved from clay tablet outlines of fields and religious disc concepts.";
+                    break;
+                case "0-1":
+                    drawCh1T2Watch(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Cylindrical Map Projections:</strong> Projecting spherical lines onto a flat sheet stretches regions near the poles. Compass headings stay straight, but sizes are distorted.";
+                    break;
+                case "0-2":
+                    drawCh1T3Watch(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Contour Ring Formations:</strong> Isolines represent 3D elevation. Slicing a hill at vertical intervals projects concentric height rings on a flat map.";
+                    break;
+                case "0-3":
+                    drawCh1T4Watch(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Modern Satellite Remote Sensing & GIS:</strong> Satellite orbits Earth while capturing geospatial data in layers like terrain, infrastructure, and population grids.";
+                    break;
+                case "1-0":
+                    drawCh2Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Solar Radiation Angles:</strong> Direct vertical rays near the Equator heat a small concentrated surface, while slanted rays spread warmth weakly near the cold poles.";
+                    break;
+                case "2-0":
+                    drawCh3Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Earth Tilt Orbit Revolution:</strong> Moving Earth tilts at 23.5 degrees, pointing towards Polaris while orbiting the Sun to create seasonal solstices.";
+                    break;
+                case "3-0":
+                    drawCh4Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Polar Midnight Sun Path:</strong> In summer, the Earth tilts fully toward the Sun, keeping it above the horizon for 24 hours of light.";
+                    break;
+                case "4-0":
+                    drawCh5Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Forest Growth Cycles:</strong> Visualizing trees breathing in carbon dioxide and storing it in their trunks while releasing fresh oxygen.";
+                    break;
+                case "5-0":
+                    drawCh6Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Underground Extraction shafts:</strong> Elevators descend deep shafts to dig out dark coal seams buried under dense rock layers.";
+                    break;
+                case "6-0":
+                    drawCh7Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Double Coincidence Barter System:</strong> Barter requires a direct exchange match. If wants do not match, trade collapses until money solves the cycle.";
+                    break;
+                case "7-0":
+                    drawCh8Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Agricultural Automation:</strong> Tractor plows and harvesters work field crops in minutes, replacing long days of hard manual labour.";
+                    break;
+                case "8-0":
+                    drawCh9Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Public Health Clinic:</strong> PHC village clinics distribute generic medicines and immunizations, protecting families from waterborne disease.";
+                    break;
+                case "9-0":
+                    drawCh10Anim(ctx, canvas.width, canvas.height, frame);
+                    mediaDesc.innerHTML = "<strong>Feudal Estate Revenue:</strong> Historical Zamindars and Doras collected grain taxes and forced unpaid labor (Vetti) from poor ryots.";
+                    break;
+            }
+            
+            frame++;
+            watchAnimationId = requestAnimationFrame(loop);
+        }
+        loop();
+    }
+}
+
+// Background utility grid drawing
+function drawGridBackground(ctx, w, h) {
+    ctx.strokeStyle = document.body.classList.contains("light-theme") ? "rgba(212, 175, 55, 0.08)" : "rgba(212, 175, 55, 0.03)";
+    ctx.lineWidth = 1;
+    for(let x=0; x<w; x+=40) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+    }
+    for(let y=0; y<h; y+=40) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+}
+
+/* ==========================================================================
+   EXPLORE: 10 INTERACTIVE SIMULATORS
+   ========================================================================== */
+function initExploreSimulation(chapIdx) {
+    const container = document.getElementById("explore-simulation-container");
+    container.innerHTML = "";
+    
+    const controls = document.createElement("div");
+    controls.className = "sim-controls-panel";
+    
+    const display = document.createElement("div");
+    display.className = "sim-display-panel";
+    display.innerHTML = `<canvas id="explore-canvas" width="410" height="400"></canvas>`;
+    
+    container.appendChild(controls);
+    container.appendChild(display);
+    
+    const canvas = document.getElementById("explore-canvas");
+    const ctx = canvas.getContext("2d");
+    
+    clearAnimationLoops();
+    
+    document.getElementById("reset-simulation-btn").onclick = () => {
+        initExploreSimulation(chapIdx);
+    };
+    
+    const simKey = activeChapterIdx + "-" + activeTopicIdx;
+    
+    switch (simKey) {
+        case "0-0": runSimCh1T1(controls, ctx, canvas); break;
+        case "0-1": runSimCh1T2(controls, ctx, canvas); break;
+        case "0-2": runSimCh1T3(controls, ctx, canvas); break;
+        case "0-3": runSimCh1T4(controls, ctx, canvas); break;
+        case "1-0": runCh2Sim(controls, ctx, canvas); break;
+        case "2-0": runCh3Sim(controls, ctx, canvas); break;
+        case "3-0": runCh4Sim(controls, ctx, canvas); break;
+        case "4-0": runCh5Sim(controls, ctx, canvas); break;
+        case "5-0": runCh6Sim(controls, ctx, canvas); break;
+        case "6-0": runCh7Sim(controls, ctx, canvas); break;
+        case "7-0": runCh8Sim(controls, ctx, canvas); break;
+        case "8-0": runCh9Sim(controls, ctx, canvas); break;
+        case "9-0": runCh10Sim(controls, ctx, canvas); break;
+    }
+}
+
+// 2. Chapter 2: Sun Insolation angle heating rate
+function runCh2Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Solar Ray Angle Simulator</h4>
+        <p class="sim-museum-desc">Adjust solar ray angle to observe heating rates:</p>
+        <div class="sim-control-group">
+            <label>Ray Angle: <span id="val-c2-a">90° (Direct)</span></label>
+            <input type="range" class="sim-slider" id="c2-slider-a" min="15" max="90" value="90">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Heating Intensity: <strong id="c2-val-int" style="color:var(--gold-color);">100%</strong></p>
+            <p style="margin-top:5px;">Estimated Climate: <strong id="c2-val-clim">Tropical Torrid</strong></p>
+        </div>
+    `;
+    const sA = document.getElementById("c2-slider-a");
+    
+    function draw() {
+        const angle = parseInt(sA.value);
+        const rad = angle * Math.PI / 180;
+        
+        const pct = Math.round((angle / 90) * 100);
+        document.getElementById("val-c2-a").textContent = `${angle}°`;
+        document.getElementById("c2-val-int").textContent = `${pct}%`;
+        
+        let clim = "Frigid Polar";
+        if (angle > 70) clim = "Tropical Torrid";
+        else if (angle > 40) clim = "Temperate Belt";
+        document.getElementById("c2-val-clim").textContent = clim;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw ground
+        ctx.fillStyle = "#8c6535";
+        ctx.fillRect(30, 350, cvs.width - 60, 20);
+        
+        // Draw rays hitting ground
+        ctx.strokeStyle = "orange";
+        ctx.lineWidth = 4;
+        const length = 150;
+        const sx = cvs.width/2 - Math.cos(rad)*length;
+        const sy = 350 - Math.sin(rad)*length;
+        
+        ctx.beginPath();
+        ctx.moveTo(sx, sy);
+        ctx.lineTo(cvs.width/2, 350);
+        ctx.stroke();
+        
+        // Sun symbol
+        ctx.fillStyle = "yellow";
+        ctx.beginPath(); ctx.arc(sx, sy, 15, 0, Math.PI*2); ctx.fill();
+    }
+    sA.oninput = draw;
+    draw();
+}
+
+// 3. Chapter 3: Solstice orbit rotation
+function runCh3Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Seasons Orbit Simulator</h4>
+        <p class="sim-museum-desc">Step Earth through its orbit around the Sun:</p>
+        <button class="sim-btn" id="btn-c3-june">June Solstice (North Summer)</button>
+        <button class="sim-btn-secondary" id="btn-c3-sept" style="margin-top:8px;">Sept Equinox (Equal Day)</button>
+        <button class="sim-btn-secondary" id="btn-c3-dec" style="margin-top:8px;">Dec Solstice (North Winter)</button>
+    `;
+    let orbitMode = "june";
+    
+    function update() {
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        const cx = cvs.width/2; const cy = cvs.height/2;
+        // Sun
+        ctx.fillStyle = "#ffd700";
+        ctx.beginPath(); ctx.arc(cx, cy, 30, 0, Math.PI*2); ctx.fill();
+        
+        // Earth positions
+        let ex = cx; let ey = cy;
+        let tiltRight = true;
+        if(orbitMode === "june") {
+            ex = cx - 130; ey = cy;
+            tiltRight = false;
+        } else if(orbitMode === "sept") {
+            ex = cx; ey = cy + 70;
+        } else {
+            ex = cx + 130; ey = cy;
+            tiltRight = true;
+        }
+        
+        // Earth sphere
+        ctx.fillStyle = "#0284c7";
+        ctx.beginPath(); ctx.arc(ex, ey, 18, 0, Math.PI*2); ctx.fill();
+        
+        // Axis line
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(ex - 5, ey - 25); ctx.lineTo(ex + 5, ey + 25); ctx.stroke();
+    }
+    
+    document.getElementById("btn-c3-june").onclick = () => {
+        orbitMode = "june";
+        document.getElementById("btn-c3-june").className = "sim-btn";
+        document.getElementById("btn-c3-sept").className = "sim-btn-secondary";
+        document.getElementById("btn-c3-dec").className = "sim-btn-secondary";
+        update();
+    };
+    document.getElementById("btn-c3-sept").onclick = () => {
+        orbitMode = "sept";
+        document.getElementById("btn-c3-june").className = "sim-btn-secondary";
+        document.getElementById("btn-c3-sept").className = "sim-btn";
+        document.getElementById("btn-c3-dec").className = "sim-btn-secondary";
+        update();
+    };
+    document.getElementById("btn-c3-dec").onclick = () => {
+        orbitMode = "dec";
+        document.getElementById("btn-c3-june").className = "sim-btn-secondary";
+        document.getElementById("btn-c3-sept").className = "sim-btn-secondary";
+        document.getElementById("btn-c3-dec").className = "sim-btn";
+        update();
+    };
+    update();
+}
+
+// 4. Chapter 4: Polar Daylight Latitude Cycles
+function runCh4Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Polar Daylight Simulator</h4>
+        <div class="sim-control-group">
+            <label>Latitude: <span id="val-c4-l">75° N</span></label>
+            <input type="range" class="sim-slider" id="c4-slider-l" min="60" max="90" value="75">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Daylight Duration: <strong style="color:var(--gold-color);" id="c4-val-day">24 Hours (Midnight Sun)</strong></p>
+        </div>
+    `;
+    const sL = document.getElementById("c4-slider-l");
+    
+    function draw() {
+        const lat = parseInt(sL.value);
+        document.getElementById("val-c4-l").textContent = `${lat}° N`;
+        
+        let hrs = 24;
+        if(lat === 60) hrs = 18;
+        else if (lat === 65) hrs = 21;
+        document.getElementById("c4-val-day").textContent = hrs === 24 ? "24 Hours (Midnight Sun)" : `${hrs} Hours`;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw polar ice dome
+        ctx.fillStyle = "#e0f2fe";
+        ctx.beginPath(); ctx.arc(cvs.width/2, 400, 160 + (90-lat)*4, Math.PI, 0); ctx.fill();
+    }
+    sL.oninput = draw;
+    draw();
+}
+
+// 5. Chapter 5: Deforestation Carbon level simulator
+function runCh5Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Forest Canopy Simulator</h4>
+        <div class="sim-control-group">
+            <label>Deforestation Rate: <span id="val-c5-d">15%</span></label>
+            <input type="range" class="sim-slider" id="c5-slider-d" min="0" max="50" value="15">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Remaining Forest: <strong id="c5-val-can" style="color:var(--gold-color);">85%</strong></p>
+            <p style="margin-top:5px;">Soil Erosion Risk: <strong id="c5-val-ero">Low</strong></p>
+        </div>
+    `;
+    const sD = document.getElementById("c5-slider-d");
+    
+    function draw() {
+        const def = parseInt(sD.value);
+        const rem = 100 - def;
+        document.getElementById("val-c5-d").textContent = `${def}% / year`;
+        document.getElementById("c5-val-can").textContent = `${rem}%`;
+        
+        let risk = "Low";
+        if(def > 35) risk = "Critical Danger";
+        else if(def > 15) risk = "Moderate";
+        document.getElementById("c5-val-ero").textContent = risk;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw forest canopy green bubbles
+        ctx.fillStyle = "#059669";
+        for(let i=0; i<rem/3; i++) {
+            const x = 50 + (i*12) % 300;
+            const y = 180 + Math.sin(i)*15;
+            ctx.beginPath(); ctx.arc(x, y, 18, 0, Math.PI*2); ctx.fill();
+        }
+    }
+    sD.oninput = draw;
+    draw();
+}
+
+// 6. Chapter 6: Mining Selector Excavator
+function runCh6Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Excavator Selector Sandbox</h4>
+        <button class="sim-btn" id="btn-c6-open">Open-Cast surface pit</button>
+        <button class="sim-btn-secondary" id="btn-c6-shaft" style="margin-top:8px;">Deep Shaft tunnel</button>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Environment Impact: <strong id="c6-val-env" style="color:var(--gold-color);">High Pit</strong></p>
+            <p style="margin-top:5px;">Operational Risk: <strong id="c6-val-risk">Low</strong></p>
+        </div>
+    `;
+    let mode = "open";
+    
+    function update() {
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        if (mode === "open") {
+            document.getElementById("c6-val-env").textContent = "Severe Surface clearing";
+            document.getElementById("c6-val-risk").textContent = "Very Low (Open Pit)";
+            
+            // Draw open steps
+            ctx.fillStyle = "#854d0e";
+            ctx.beginPath();
+            ctx.moveTo(30, 100);
+            ctx.lineTo(120, 100);
+            ctx.lineTo(120, 200);
+            ctx.lineTo(280, 200);
+            ctx.lineTo(280, 100);
+            ctx.lineTo(370, 100);
+            ctx.lineTo(370, 350);
+            ctx.lineTo(30, 350);
+            ctx.closePath(); ctx.fill();
+        } else {
+            document.getElementById("c6-val-env").textContent = "Minimal Surface damage";
+            document.getElementById("c6-val-risk").textContent = "High (Tunnel Collapse/Gas)";
+            
+            // Draw shaft lines
+            ctx.strokeStyle = "#fff"; ctx.lineWidth = 5;
+            ctx.beginPath(); ctx.moveTo(cvs.width/2, 100); ctx.lineTo(cvs.width/2, 300); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cvs.width/2 - 50, 300); ctx.lineTo(cvs.width/2 + 50, 300); ctx.stroke();
+        }
+    }
+    
+    document.getElementById("btn-c6-open").onclick = () => {
+        mode = "open";
+        document.getElementById("btn-c6-open").className = "sim-btn";
+        document.getElementById("btn-c6-shaft").className = "sim-btn-secondary";
+        update();
+    };
+    
+    document.getElementById("btn-c6-shaft").onclick = () => {
+        mode = "shaft";
+        document.getElementById("btn-c6-open").className = "sim-btn-secondary";
+        document.getElementById("btn-c6-shaft").className = "sim-btn";
+        update();
+    };
+    update();
+}
+
+// 7. Chapter 7: Money multiplier and Reserve ratios
+function runCh7Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Money Multiplier Calculator</h4>
+        <div class="sim-control-group">
+            <label>Reserve Ratio (LRR): <span id="val-c7-r">20%</span></label>
+            <input type="range" class="sim-slider" id="c7-slider-r" min="10" max="50" value="20">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Initial Deposit: <strong>₹ 10,000</strong></p>
+            <p style="margin-top:5px;">Credit Generated: <strong id="c7-val-tot" style="color:var(--gold-color);">₹ 50,000</strong></p>
+        </div>
+    `;
+    const sR = document.getElementById("c7-slider-r");
+    
+    function draw() {
+        const ratio = parseInt(sR.value);
+        const mult = 100 / ratio;
+        const total = 10000 * mult;
+        
+        document.getElementById("val-c7-r").textContent = `${ratio}%`;
+        document.getElementById("c7-val-tot").textContent = `₹ ${total.toLocaleString()}`;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw multiple loan cylinders representing created money
+        ctx.fillStyle = "rgba(16, 185, 129, 0.2)";
+        ctx.strokeStyle = "var(--emerald-green)";
+        for (let i = 0; i < Math.round(mult); i++) {
+            const h = 120 - i*15;
+            ctx.fillRect(80 + i * 35, 300 - h, 25, h);
+            ctx.strokeRect(80 + i * 35, 300 - h, 25, h);
+        }
+    }
+    sR.oninput = draw;
+    draw();
+}
+
+// 8. Chapter 8: Mechanization Speed vs rural jobs
+function runCh8Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Job Mechanization Index</h4>
+        <div class="sim-control-group">
+            <label>Tractors in Village: <span id="val-c8-m">5 Units</span></label>
+            <input type="range" class="sim-slider" id="c8-slider-m" min="0" max="15" value="5">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Harvest Speed: <strong id="c8-val-spd" style="color:var(--gold-color);">Fast</strong></p>
+            <p style="margin-top:5px;">Displaced Laborers: <strong id="c8-val-un">Low</strong></p>
+        </div>
+    `;
+    const sM = document.getElementById("c8-slider-m");
+    
+    function draw() {
+        const machines = parseInt(sM.value);
+        document.getElementById("val-c8-m").textContent = `${machines} Units`;
+        
+        let spd = "Slow"; let un = "None";
+        if(machines > 10) { spd = "Ultra-Fast"; un = "Critical (Mass Migration)"; }
+        else if(machines > 4) { spd = "Moderate-Fast"; un = "Moderate Displacement"; }
+        
+        document.getElementById("c8-val-spd").textContent = spd;
+        document.getElementById("c8-val-un").textContent = un;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw tractor wheels
+        ctx.strokeStyle = "red"; ctx.lineWidth = 3;
+        for(let i=0; i<machines; i++) {
+            const x = 50 + (i * 22) % 300;
+            ctx.beginPath(); ctx.arc(x, 200, 8, 0, Math.PI*2); ctx.stroke();
+        }
+    }
+    sM.oninput = draw;
+    draw();
+}
+
+// 9. Chapter 9: Public Health clinic budgets
+function runCh9Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>PHC Health Budget Allocation</h4>
+        <div class="sim-control-group">
+            <label>Public Sanitation: <span id="val-c9-s">40%</span></label>
+            <input type="range" class="sim-slider" id="c9-slider-s" min="10" max="80" value="40">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Disease Infection Rate: <strong id="c9-val-inf" style="color:var(--gold-color);">12%</strong></p>
+        </div>
+    `;
+    const sS = document.getElementById("c9-slider-s");
+    
+    function draw() {
+        const san = parseInt(sS.value);
+        const inf = Math.max(1, Math.round(35 - san * 0.4));
+        document.getElementById("val-c9-s").textContent = `${san}%`;
+        document.getElementById("c9-val-inf").textContent = `${inf}%`;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw germs representation (smaller germs if sanitation is high)
+        ctx.fillStyle = "rgba(239, 68, 68, 0.4)";
+        for(let i=0; i<inf; i++) {
+            const x = 60 + (i*18) % 280;
+            const y = 100 + (i*24) % 200;
+            ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI*2); ctx.fill();
+        }
+    }
+    sS.oninput = draw;
+    draw();
+}
+
+// 10. Chapter 10: Peasant Land Tax Rebellion
+function runCh10Sim(ctrls, ctx, cvs) {
+    ctrls.innerHTML = `
+        <h4>Ryotwari Tax Rebellion risk</h4>
+        <div class="sim-control-group">
+            <label>Land Tax Rate: <span id="val-c10-t">30%</span></label>
+            <input type="range" class="sim-slider" id="c10-slider-t" min="10" max="90" value="30">
+        </div>
+        <div class="sim-data-box" style="margin-top:15px;">
+            <p>Peasant Income: <strong id="c10-val-inc">Moderate</strong></p>
+            <p style="margin-top:5px;">Rebellion Risk Gauge: <strong id="c10-val-reb" style="color:var(--gold-color);">Safe</strong></p>
+        </div>
+    `;
+    const sT = document.getElementById("c10-slider-t");
+    
+    function draw() {
+        const tax = parseInt(sT.value);
+        document.getElementById("val-c10-t").textContent = `${tax}%`;
+        
+        let inc = "High"; let reb = "Very Safe";
+        if(tax > 70) { inc = "Starvation level"; reb = "Armed Revolt Rebellion Triggered!"; }
+        else if (tax > 45) { inc = "Poverty Debt Cycle"; reb = "High Protest"; }
+        
+        document.getElementById("c10-val-inc").textContent = inc;
+        document.getElementById("c10-val-reb").textContent = reb;
+        
+        ctx.clearRect(0,0,cvs.width,cvs.height);
+        drawGridBackground(ctx, cvs.width, cvs.height);
+        
+        // Draw risk thermometer gauge
+        ctx.fillStyle = "gray";
+        ctx.fillRect(cvs.width/2 - 15, 80, 30, 240);
+        ctx.fillStyle = tax > 70 ? "red" : (tax > 45 ? "orange" : "green");
+        const fillH = (tax / 100) * 240;
+        ctx.fillRect(cvs.width/2 - 15, 320 - fillH, 30, fillH);
+    }
+    sT.oninput = draw;
+    draw();
+}
+
+/* ==========================================================================
+   PRACTICE: QUIZZES AND FLASHCARDS ENGINES
+   ========================================================================== */
+function initPracticeQuiz(chapIdx) {
+    document.getElementById("practice-quiz-section").querySelector(".quiz-card-container").classList.remove("hide");
+    document.getElementById("quiz-prev-btn").classList.remove("hide");
+    document.getElementById("quiz-next-btn").classList.remove("hide");
+    document.getElementById("quiz-timer-box").classList.remove("hide");
+    document.getElementById("quiz-complete-card").classList.add("hide");
+    
+    currentQuizQuestionIdx = 0;
+    quizAnswers = Array(5).fill(null);
+    quizSecondsElapsed = 0;
+    
+    const t = syllabusData[chapIdx].topics[activeTopicIdx];
+    // Copy questions list
+    quizQuestionsList = t.quiz.map(q => ({
+        q: q.q,
+        options: [...q.options],
+        correct: q.correct,
+        exp: q.exp
+    }));
+    
+    // Generate step dots
+    const container = document.getElementById("quiz-question-steps");
+    container.innerHTML = "";
+    for(let i=0; i<5; i++) {
+        const dot = document.createElement("div");
+        dot.className = (i === 0) ? "quiz-step-dot active" : "quiz-step-dot";
+        container.appendChild(dot);
+    }
+    
+    document.getElementById("quiz-time-elapsed").textContent = "0:00";
+    if (quizTimerInterval) clearInterval(quizTimerInterval);
+    quizTimerInterval = setInterval(() => {
+        quizSecondsElapsed++;
+        const m = Math.floor(quizSecondsElapsed/60);
+        const s = quizSecondsElapsed % 60;
+        document.getElementById("quiz-time-elapsed").textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+    }, 1000);
+    
+    loadQuizQuestion(0);
+}
+
+function loadQuizQuestion(qIdx) {
+    currentQuizQuestionIdx = qIdx;
+    document.getElementById("quiz-q-num").textContent = `Question ${qIdx + 1} of 5`;
+    const q = quizQuestionsList[qIdx];
+    document.getElementById("quiz-question-text").textContent = q.q;
+    
+    const list = document.getElementById("quiz-options-list");
+    list.innerHTML = "";
+    
+    q.options.forEach((opt, idx) => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.innerHTML = `<span class="option-badge">${["A","B","C","D"][idx]}</span> <span>${opt}</span>`;
+        
+        if (quizAnswers[qIdx] !== null) {
+            btn.disabled = true;
+            if(idx === q.correct) btn.classList.add("correct");
+            else if(idx === quizAnswers[qIdx]) btn.classList.add("wrong");
+        }
+        
+        btn.onclick = () => {
+            handleQuizSelection(qIdx, idx);
+        };
+        list.appendChild(btn);
+    });
+    
+    const expBox = document.getElementById("quiz-explanation-box");
+    if(quizAnswers[qIdx] !== null) {
+        expBox.classList.remove("hide");
+        const corr = quizAnswers[qIdx] === q.correct;
+        document.getElementById("quiz-exp-status").textContent = corr ? "Correct Answer!" : "Incorrect Answer!";
+        document.getElementById("quiz-exp-status").className = corr ? "explanation-status pass" : "explanation-status fail";
+        document.getElementById("quiz-explanation-text").textContent = q.exp;
+    } else {
+        expBox.classList.add("hide");
+    }
+    
+    const prev = document.getElementById("quiz-prev-btn");
+    const next = document.getElementById("quiz-next-btn");
+    prev.disabled = qIdx === 0;
+    next.disabled = quizAnswers[qIdx] === null;
+    next.textContent = qIdx === 4 ? "Submit Quiz" : "Next Question";
+    
+    prev.onclick = () => { loadQuizQuestion(qIdx - 1); };
+    next.onclick = () => {
+        if(qIdx < 4) loadQuizQuestion(qIdx + 1);
+        else finishTopicQuiz();
+    };
+    
+    updateQuizDots(qIdx);
+}
+
+function handleQuizSelection(qIdx, optIdx) {
+    quizAnswers[qIdx] = optIdx;
+    const q = quizQuestionsList[qIdx];
+    const corr = optIdx === q.correct;
+    
+    const dots = document.querySelectorAll(".quiz-step-dot");
+    dots[qIdx].className = corr ? "quiz-step-dot correct" : "quiz-step-dot wrong";
+    
+    loadQuizQuestion(qIdx);
+}
+
+function updateQuizDots(activeIdx) {
+    const dots = document.querySelectorAll(".quiz-step-dot");
+    dots.forEach((dot, idx) => {
+        if(!dot.classList.contains("correct") && !dot.classList.contains("wrong")) {
+            dot.className = (idx === activeIdx) ? "quiz-step-dot active" : "quiz-step-dot";
+        }
+    });
+}
+
+function finishTopicQuiz() {
+    clearInterval(quizTimerInterval);
+    document.getElementById("practice-quiz-section").querySelector(".quiz-card-container").classList.add("hide");
+    document.getElementById("quiz-prev-btn").classList.add("hide");
+    document.getElementById("quiz-next-btn").classList.add("hide");
+    document.getElementById("quiz-timer-box").classList.add("hide");
+    
+    let score = 0;
+    quizQuestionsList.forEach((q, idx) => {
+        if(quizAnswers[idx] === q.correct) score++;
+    });
+    const pct = Math.round((score/5)*100);
+    
+    document.getElementById("quiz-complete-card").classList.remove("hide");
+    document.getElementById("quiz-score-val").textContent = `${score} / 5`;
+    document.getElementById("quiz-percent-val").textContent = `${pct}%`;
+    
+    if(pct >= 80) {
+        userProgress.completedChapters[activeChapterIdx] = true;
+        saveProgress();
+        updateTopicProgressRing();
+    }
+    
+    document.getElementById("quiz-retry-btn").onclick = () => {
+        initPracticeQuiz(activeChapterIdx);
+    };
+}
+
+// Flashcards control
+let currentFlashcardIdx = 0;
+function initFlashcards(chapIdx) {
+    currentFlashcardIdx = 0;
+    const card = document.getElementById("flashcard-element");
+    card.classList.remove("flipped");
+    card.onclick = () => card.classList.toggle("flipped");
+    
+    document.getElementById("fc-prev-btn").onclick = () => {
+        if (currentFlashcardIdx > 0) {
+            currentFlashcardIdx--;
+            card.classList.remove("flipped");
+            setTimeout(() => loadFlashcard(chapIdx, currentFlashcardIdx), 150);
+        }
+    };
+    document.getElementById("fc-next-btn").onclick = () => {
+        if (currentFlashcardIdx < 4) {
+            currentFlashcardIdx++;
+            card.classList.remove("flipped");
+            setTimeout(() => loadFlashcard(chapIdx, currentFlashcardIdx), 150);
+        }
+    };
+    loadFlashcard(chapIdx, 0);
+}
+
+function loadFlashcard(chapIdx, idx) {
+    const fc = syllabusData[chapIdx].topics[activeTopicIdx].flashcards[idx];
+    document.getElementById("flashcard-front-text").textContent = fc.q;
+    document.getElementById("flashcard-back-text").textContent = fc.a;
+    document.getElementById("fc-counter-text").textContent = `${idx + 1} / 5`;
+    
+    document.getElementById("fc-prev-btn").disabled = idx === 0;
+    document.getElementById("fc-next-btn").disabled = idx === 4;
+}
+
+document.getElementById("btn-toggle-quiz").onclick = () => {
+    document.getElementById("btn-toggle-quiz").classList.add("active");
+    document.getElementById("btn-toggle-flashcards").classList.remove("active");
+    document.getElementById("practice-quiz-section").classList.remove("hide");
+    document.getElementById("practice-flashcard-section").classList.add("hide");
+    initPracticeQuiz(activeChapterIdx);
+};
+
+document.getElementById("btn-toggle-flashcards").onclick = () => {
+    document.getElementById("btn-toggle-quiz").classList.remove("active");
+    document.getElementById("btn-toggle-flashcards").classList.add("active");
+    document.getElementById("practice-quiz-section").classList.add("hide");
+    document.getElementById("practice-flashcard-section").classList.remove("hide");
+    initFlashcards(activeChapterIdx);
+};
+
+/* ==========================================================================
+   EXAM: COMPREHENSIVE COURSE GRADUATION
+   ========================================================================== */
+function startExamProcess() {
+    const nameInput = document.getElementById("input-student-name");
+    const nameVal = nameInput.value.trim();
+    
+    if(!nameVal) {
+        document.getElementById("name-error-msg").classList.remove("hide");
+        return;
+    }
+    document.getElementById("name-error-msg").classList.add("hide");
+    
+    userProgress.studentName = nameVal;
+    saveProgress();
+    
+    currentExamQIdx = 0;
+    examSecondsRemaining = 1200;
+    buildExamQuestions();
+    
+    examAnswers = Array(20).fill(null);
+    
+    document.querySelector(".exam-setup-box").classList.add("hide");
+    document.getElementById("exam-stage-panel").classList.remove("hide");
+    document.getElementById("exam-results-panel").classList.add("hide");
+    
+    document.getElementById("exam-candidate-name").textContent = nameVal;
+    document.getElementById("exam-timer-val").textContent = "20:00";
+    
+    if (examTimerInterval) clearInterval(examTimerInterval);
+    examTimerInterval = setInterval(() => {
+        examSecondsRemaining--;
+        if(examSecondsRemaining <= 0) {
+            clearInterval(examTimerInterval);
+            finishExam();
+        } else {
+            const m = Math.floor(examSecondsRemaining/60);
+            const s = examSecondsRemaining % 60;
+            document.getElementById("exam-timer-val").textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+    }, 1000);
+    
+    loadExamQuestion(0);
+}
+
+// Compile 20 questions from the chapters
+function buildExamQuestions() {
+    examQuestionsList = [];
+    const allQ = [];
+    syllabusData.forEach(ch => {
+        ch.topics.forEach(t => {
+            t.quiz.forEach(q => {
+                allQ.push({
+                    q: q.q,
+                    options: [...q.options],
+                    correct: q.correct,
+                    exp: q.exp
+                });
+            });
+        });
+    });
+    
+    shuffleArray(allQ);
+    
+    // Pick 20 questions
+    for (let i = 0; i < Math.min(20, allQ.length); i++) {
+        const q = allQ[i];
+        const optionsWithIndices = q.options.map((opt, idx) => ({ opt, originalIdx: idx }));
+        shuffleArray(optionsWithIndices);
+        q.options = optionsWithIndices.map(x => x.opt);
+        q.correct = optionsWithIndices.findIndex(x => x.originalIdx === q.correct);
+        examQuestionsList.push(q);
+    }
+}
+
+function loadExamQuestion(qIdx) {
+    currentExamQIdx = qIdx;
+    document.getElementById("exam-q-counter").textContent = `Question ${qIdx + 1} of 20`;
+    
+    const progressFill = (qIdx / 20) * 100;
+    document.getElementById("exam-progress-fill").style.width = `${progressFill}%`;
+    
+    const q = examQuestionsList[qIdx];
+    document.getElementById("exam-question-text").textContent = q.q;
+    
+    const grid = document.getElementById("exam-options-grid");
+    grid.innerHTML = "";
+    
+    q.options.forEach((opt, idx) => {
+        const card = document.createElement("div");
+        const select = examAnswers[qIdx] === idx;
+        card.className = `exam-option-card ${select ? "selected" : ""}`;
+        card.innerHTML = `
+            <span class="option-badge">${["A","B","C","D"][idx]}</span>
+            <span>${opt}</span>
+        `;
+        
+        card.onclick = () => {
+            examAnswers[qIdx] = idx;
+            document.querySelectorAll(".exam-option-card").forEach(c => c.classList.remove("selected"));
+            card.classList.add("selected");
+        };
+        grid.appendChild(card);
+    });
+    
+    const prev = document.getElementById("exam-prev-btn");
+    const next = document.getElementById("exam-next-btn");
+    prev.disabled = qIdx === 0;
+    next.textContent = qIdx === 19 ? "Submit Examination" : "Next Question";
+    
+    prev.onclick = () => { loadExamQuestion(qIdx - 1); };
+    next.onclick = () => {
+        if(qIdx < 19) loadExamQuestion(qIdx + 1);
+        else finishExam();
+    };
+}
+
+function finishExam() {
+    clearInterval(examTimerInterval);
+    document.getElementById("exam-stage-panel").classList.add("hide");
+    document.getElementById("exam-results-panel").classList.remove("hide");
+    
+    let correct = 0;
+    examQuestionsList.forEach((q, idx) => {
+        if (examAnswers[idx] === q.correct) correct++;
+    });
+    
+    const pct = Math.round((correct / 20) * 100);
+    const passed = pct >= 80;
+    
+    userProgress.examHighScores["course"] = Math.max(userProgress.examHighScores["course"] || 0, correct);
+    saveProgress();
+    
+    document.getElementById("results-score-text").textContent = `${correct} / 20`;
+    document.getElementById("results-percent-text").textContent = `${pct}%`;
+    
+    const status = document.getElementById("results-status-text");
+    const medal = document.getElementById("results-medal-icon");
+    const heading = document.getElementById("results-heading");
+    const btnCert = document.getElementById("btn-generate-certificate");
+    
+    if (passed) {
+        status.textContent = "PASSED";
+        status.className = "val status-pass";
+        medal.textContent = "🏆";
+        heading.textContent = "Congratulations! You Passed!";
+        btnCert.classList.remove("hide");
+        btnCert.onclick = () => triggerCertificateModal(correct, pct);
+    } else {
+        status.textContent = "FAILED";
+        status.className = "val status-fail";
+        medal.textContent = "❌";
+        heading.textContent = "Exam Not Passed";
+        btnCert.classList.add("hide");
+    }
+    
+    document.getElementById("btn-exam-reset").onclick = () => {
+        selectExamDashboard();
+    };
+    
+    renderDetailedReview();
+}
+
+function renderDetailedReview() {
+    const list = document.getElementById("exam-review-list");
+    list.innerHTML = "";
+    
+    examQuestionsList.forEach((q, idx) => {
+        const item = document.createElement("div");
+        const corr = examAnswers[idx] === q.correct;
+        item.className = `review-item ${corr ? "correct" : "incorrect"}`;
+        
+        let choiceHTML = "";
+        q.options.forEach((opt, oIdx) => {
+            let choiceClass = "";
+            if (oIdx === q.correct) choiceClass = "correct";
+            else if (oIdx === examAnswers[idx]) choiceClass = "incorrect";
+            
+            choiceHTML += `
+                <div class="review-choice ${choiceClass}">
+                    <span class="option-badge">${["A","B","C","D"][oIdx]}</span>
+                    <span>${opt}</span>
+                </div>
+            `;
+        });
+        
+        item.innerHTML = `
+            <span class="review-q-num">Question ${idx+1} (${corr ? "Correct" : "Wrong"})</span>
+            <h4>${q.q}</h4>
+            <div class="review-choices">${choiceHTML}</div>
+            <p class="review-exp"><strong>Explanation:</strong> ${q.exp}</p>
+        `;
+        list.appendChild(item);
+    });
+}
+
+function triggerCertificateModal(score, pct) {
+    document.getElementById("certificate-modal").classList.remove("hide");
+    document.getElementById("cert-display-name").textContent = userProgress.studentName;
+    document.getElementById("cert-display-chapter").textContent = "Class 8 Social Studies Full Syllabus (Chapters 1-10)";
+    
+    let grade = "Grade B (Very Good)";
+    if(pct >= 95) grade = "Grade A+ (Distinction)";
+    else if(pct >= 85) grade = "Grade A (Excellent)";
+    document.getElementById("cert-display-grade").textContent = `${grade} with ${pct}%`;
+    
+    const d = new Date();
+    document.getElementById("cert-display-date").textContent = `${d.getDate()} ${["January","February","March","April","May","June","July","August","September","October","November","December"][d.getMonth()]} \${d.getFullYear()}`;
+    
+    const randID = `SRIV-C10-\${Math.floor(1000 + Math.random()*9000)}-\${Math.floor(1000 + Math.random()*9000)}`;
+    document.getElementById("cert-display-uid").textContent = randID;
+}
